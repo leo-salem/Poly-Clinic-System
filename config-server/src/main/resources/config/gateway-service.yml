@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: gateway-service
+
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: appointment-service
+            uri: lb://APPOINTMENT-SERVICE
+            predicates:
+              - Path=/api/appointments/**
+            filters:
+              - name: Retry
+                args:
+                  retries: 3
+                  methods: GET
+
+          - id: prescription-service
+            uri: lb://PRESCRIPTION-SERVICE
+            predicates:
+              - Path=/api/prescriptions/**,/api/records/**
+            filters:
+              - name: Retry
+                args:
+                  retries: 3
+                  methods: GET
+
+          - id: notification-service
+            uri: lb://NOTIFICATION-SERVICE
+            predicates:
+              - Path=/api/notifications/**
+
+          - id: payment-service
+            uri: lb://PAYMENT-SERVICE
+            predicates:
+              - Path=/api/payments/**
+
+          - id: user-management-service
+            uri: lb://USER-MANAGEMENT-SERVICE
+            predicates:
+              - Path=/api/rooms/**,/api/departments/**,/api/doctors/**,/api/nurses/**,/api/patients/**,/api/users/**
+
+          - id: eureka-server
+            uri: http://localhost:8761
+            predicates:
+              - Path=/eureka/main
+            filters:
+              - name: RewritePath
+                args:
+                  regexp: /eureka/main
+                  replacement: /
+
+          - id: eureka-server-static
+            uri: http://localhost:8761
+            predicates:
+              - Path=/eureka/**
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/poly-clinic-system
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
