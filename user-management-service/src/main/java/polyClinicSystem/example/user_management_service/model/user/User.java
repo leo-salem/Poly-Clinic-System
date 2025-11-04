@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import polyClinicSystem.example.user_management_service.model.enums.Gender;
 import polyClinicSystem.example.user_management_service.model.enums.Role;
 
@@ -17,17 +18,20 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(name = "users")
+@EntityListeners(AuditingEntityListener.class)
 @Inheritance(strategy = InheritanceType.JOINED)
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String keycloakID;
     private int age;
     private String firstName;
     private String lastName;
     private String email;
-
+    private String username;
+    private String password;
     @Enumerated(EnumType.STRING)
     private Role role;
 
