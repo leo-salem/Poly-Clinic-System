@@ -1,0 +1,33 @@
+package polyClinicSystem.example.user_management_service.mapper;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import polyClinicSystem.example.user_management_service.dto.request.create.CreateDepartmentRequest;
+import polyClinicSystem.example.user_management_service.dto.request.create.CreateRoomRequest;
+import polyClinicSystem.example.user_management_service.dto.request.create.RegisterStaffRequest;
+import polyClinicSystem.example.user_management_service.dto.response.DepartmentResponse;
+import polyClinicSystem.example.user_management_service.dto.response.RoomResponse;
+import polyClinicSystem.example.user_management_service.dto.response.UserResponse;
+import polyClinicSystem.example.user_management_service.model.department.Department;
+import polyClinicSystem.example.user_management_service.model.department.Room;
+import polyClinicSystem.example.user_management_service.model.user.Doctor;
+import polyClinicSystem.example.user_management_service.model.user.Nurse;
+import polyClinicSystem.example.user_management_service.model.user.Patient;
+
+@Mapper(componentModel = "spring",
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+public interface MapperSystem {
+
+
+    public Patient toPatient(RegisterStaffRequest request);
+    public UserResponse toUserResponse(Patient patient);
+    public UserResponse toUserResponse(Doctor doctor);
+    public Doctor toDoctor(RegisterStaffRequest request);
+    public UserResponse toUserResponse(Nurse nurse);
+    public Nurse toNurse(RegisterStaffRequest request);
+    public Room toRoom(CreateRoomRequest request);
+    public RoomResponse toRoomResponse(Room room);
+    public Department toDepartment(CreateDepartmentRequest request);
+    public DepartmentResponse toDepartmentResponse(Department department);
+
+}

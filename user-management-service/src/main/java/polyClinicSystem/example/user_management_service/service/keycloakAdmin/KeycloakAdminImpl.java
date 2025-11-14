@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.client.RestClient;
-import polyClinicSystem.example.user_management_service.dto.RegisterPatientRequest;
+import polyClinicSystem.example.user_management_service.dto.request.create.RegisterStaffRequest;
 
 import java.net.URI;
 import java.util.*;
@@ -33,7 +33,43 @@ public class KeycloakAdminImpl implements KeycloakAdminService {
 
         private final RestClient restClient = RestClient.create();
 
-        //  Get admin access token using password grant
+    @Override
+    public String createUser(String token, RegisterStaffRequest userRequest) {
+        Map<String, Object> userPayload = new HashMap<>();
+        userPayload.put("username", userRequest.getUsername());
+        userPayload.put("email", userRequest.getEmail());
+        userPayload.put("enabled", true);
+        userPayload.put("firstName", userRequest.getFirstName());
+        userPayload.put("lastName", userRequest.getLastName());
+
+        // Set password credentials
+        Map<String, Object> credential = new HashMap<>();
+        credential.put("type", "password");
+        credential.put("value", userRequest.getPassword());
+        credential.put("temporary", false);
+        userPayload.put("credentials", List.of(credential));
+
+        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users";
+
+        ResponseEntity<Void> response = restClient.post()
+                .uri(url)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(userPayload)
+                .retrieve()
+                .toEntity(Void.class);
+
+        URI location = response.getHeaders().getLocation();
+        if (location == null) {
+            throw new RuntimeException("Keycloak did not return user location header");
+        }
+
+        // Extract userId from returned URI
+        String path = location.getPath();
+        return path.substring(path.lastIndexOf("/") + 1);
+    }
+
+    //  Get admin access token using password grant
         public String getAdminAccessToken() {
             Map<String, String> params = new HashMap<>();
             params.put("client_id", clientId);
@@ -51,42 +87,6 @@ public class KeycloakAdminImpl implements KeycloakAdminService {
                     .body(Map.class);
 
             return (String) response.get("access_token");
-        }
-
-        //  2. Create user in Keycloak
-        public String createUser(String token, RegisterPatientRequest userRequest) {
-            Map<String, Object> userPayload = new HashMap<>();
-            userPayload.put("username", userRequest.getUsername());
-            userPayload.put("email", userRequest.getEmail());
-            userPayload.put("enabled", true);
-            userPayload.put("firstName", userRequest.getFirstName());
-            userPayload.put("lastName", userRequest.getLastName());
-
-            // Set password credentials
-            Map<String, Object> credential = new HashMap<>();
-            credential.put("type", "password");
-            credential.put("value", userRequest.getPassword());
-            credential.put("temporary", false);
-            userPayload.put("credentials", List.of(credential));
-
-            String url = keycloakServerUrl + "/admin/realms/" + realm + "/users";
-
-            ResponseEntity<Void> response = restClient.post()
-                    .uri(url)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(userPayload)
-                    .retrieve()
-                    .toEntity(Void.class);
-
-            URI location = response.getHeaders().getLocation();
-            if (location == null) {
-                throw new RuntimeException("Keycloak did not return user location header");
-            }
-
-            // Extract userId from returned URI
-            String path = location.getPath();
-            return path.substring(path.lastIndexOf("/") + 1);
         }
 
         //  Get client role representation (for assigning roles)
@@ -144,6 +144,53 @@ public class KeycloakAdminImpl implements KeycloakAdminService {
                     .retrieve()
                     .toBodilessEntity();
         }
+
+    public void deleteUser(String userId) {
+        String token = getAdminAccessToken();
+
+        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId;
+
+        restClient.delete()
+                .uri(url)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    public void updateUser(String userId, Map<String, Object> updatedFields) {
+        String token = getAdminAccessToken();
+
+        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId;
+
+        restClient.put()
+                .uri(url)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(updatedFields)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+
+    public void updateUserPassword(String userId, String newPassword) {
+        String token = getAdminAccessToken();
+
+        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId + "/reset-password";
+
+        Map<String, Object> credential = new HashMap<>();
+        credential.put("type", "password");
+        credential.put("value", newPassword);
+        credential.put("temporary", false);
+
+        restClient.put()
+                .uri(url)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(credential)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
 
 }
 

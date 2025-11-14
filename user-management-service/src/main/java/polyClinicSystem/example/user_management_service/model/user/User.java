@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 @EntityListeners(AuditingEntityListener.class)
 @Inheritance(strategy = InheritanceType.JOINED)
-public class User {
+public abstract class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,8 +30,8 @@ public class User {
     private String firstName;
     private String lastName;
     private String email;
+    private String Phone;
     private String username;
-    private String password;
     @Enumerated(EnumType.STRING)
     private Role role;
 
