@@ -13,21 +13,11 @@ spring:
             uri: lb://APPOINTMENT-SERVICE
             predicates:
               - Path=/api/appointments/**
-            filters:
-              - name: Retry
-                args:
-                  retries: 3
-                  methods: GET
 
           - id: prescription-service
             uri: lb://PRESCRIPTION-SERVICE
             predicates:
               - Path=/api/prescriptions/**,/api/records/**
-            filters:
-              - name: Retry
-                args:
-                  retries: 3
-                  methods: GET
 
           - id: notification-service
             uri: lb://NOTIFICATION-SERVICE
@@ -58,7 +48,6 @@ spring:
             uri: http://localhost:8761
             predicates:
               - Path=/eureka/**
-
 
 server:
   port: 8080

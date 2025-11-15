@@ -13,6 +13,7 @@ import polyClinicSystem.example.user_management_service.model.department.Room;
 import polyClinicSystem.example.user_management_service.model.user.Doctor;
 import polyClinicSystem.example.user_management_service.model.user.Nurse;
 import polyClinicSystem.example.user_management_service.model.user.Patient;
+import polyClinicSystem.example.user_management_service.model.user.User;
 
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -22,6 +23,7 @@ public interface MapperSystem {
     public Patient toPatient(RegisterStaffRequest request);
     public UserResponse toUserResponse(Patient patient);
     public UserResponse toUserResponse(Doctor doctor);
+    public UserResponse toUserResponse(User user);
     public Doctor toDoctor(RegisterStaffRequest request);
     public UserResponse toUserResponse(Nurse nurse);
     public Nurse toNurse(RegisterStaffRequest request);

@@ -7,6 +7,7 @@ import org.springframework.util.StringUtils;
 import polyClinicSystem.example.user_management_service.dto.request.create.CreateRoomRequest;
 import polyClinicSystem.example.user_management_service.dto.request.update.UpdateRoomRequest;
 import polyClinicSystem.example.user_management_service.dto.response.RoomResponse;
+import polyClinicSystem.example.user_management_service.exception.customExceptions.NotFoundException;
 import polyClinicSystem.example.user_management_service.mapper.MapperSystem;
 import polyClinicSystem.example.user_management_service.model.department.Department;
 import polyClinicSystem.example.user_management_service.model.department.Room;
@@ -27,7 +28,7 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse createRoom(CreateRoomRequest request) {
 
         Department department = departmentRepository.findById(request.getDepartmentId())
-                .orElseThrow(() -> new RuntimeException("Department not found"));
+                .orElseThrow(() -> new NotFoundException("Department not found"));
 
         Room room = mapperSystem.toRoom(request);
         room.setDepartment(department);
@@ -42,7 +43,7 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse updateRoom(Long id, UpdateRoomRequest request) {
 
         Room room = roomRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new NotFoundException("Room not found"));
 
         if (request.getRoomNumber() != null)
             room.setRoomNumber(request.getRoomNumber());
@@ -64,7 +65,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public RoomResponse getRoom(Long id) {
         Room room = roomRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new NotFoundException("Room not found"));
         return mapperSystem.toRoomResponse(room);
     }
 

@@ -16,7 +16,7 @@ public class Doctor extends User {
 
     private int experience_years;
 
-    @ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name="department_id")
     private Department department;
 }

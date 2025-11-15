@@ -1,76 +1,64 @@
 package polyClinicSystem.example.user_management_service.service.keycloakAdmin;
 
-import org.springframework.stereotype.Service;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import polyClinicSystem.example.user_management_service.dto.request.create.RegisterStaffRequest;
+import polyClinicSystem.example.user_management_service.exception.customExceptions.KeycloakInvalidResponseException;
+import polyClinicSystem.example.user_management_service.exception.customExceptions.KeycloakNotFoundException;
+import polyClinicSystem.example.user_management_service.exception.customExceptions.KeycloakOperationException;
+import polyClinicSystem.example.user_management_service.exception.customExceptions.KeycloakServerException;
 
 import java.net.URI;
 import java.util.*;
+
 @Service
+@RequiredArgsConstructor
 public class KeycloakAdminImpl implements KeycloakAdminService {
-        @Value("${keycloak.admin.username}")
-        private String adminUsername;
 
-        @Value("${keycloak.admin.password}")
-        private String adminPassword;
+    @Value("${keycloak.admin.username}")
+    private String adminUsername;
 
-        @Value("${keycloak.admin.server-url}")
-        private String keycloakServerUrl;
+    @Value("${keycloak.admin.password}")
+    private String adminPassword;
 
-        @Value("${keycloak.admin.realm}")
-        private String realm;
+    @Value("${keycloak.admin.server-url}")
+    private String keycloakServerUrl;
 
-        @Value("${keycloak.admin.client-id}")
-        private String clientId;
+    @Value("${keycloak.admin.realm}")
+    private String realm;
 
-        @Value("${keycloak.admin.client-uid}")
-        private String clientUid;
-        //not handle this yet cause
-        //for every client role (resource access)there is clientUid
+    @Value("${keycloak.admin.client-id}")
+    private String clientId;
 
-        private final RestClient restClient = RestClient.create();
+    @Value("${keycloak.admin.client-uid}")
+    private String clientUid;
 
-    @Override
-    public String createUser(String token, RegisterStaffRequest userRequest) {
-        Map<String, Object> userPayload = new HashMap<>();
-        userPayload.put("username", userRequest.getUsername());
-        userPayload.put("email", userRequest.getEmail());
-        userPayload.put("enabled", true);
-        userPayload.put("firstName", userRequest.getFirstName());
-        userPayload.put("lastName", userRequest.getLastName());
+    private final RestClient restClient = RestClient.create();
 
-        // Set password credentials
-        Map<String, Object> credential = new HashMap<>();
-        credential.put("type", "password");
-        credential.put("value", userRequest.getPassword());
-        credential.put("temporary", false);
-        userPayload.put("credentials", List.of(credential));
 
-        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users";
+    //  Error Handler Helper
+    private void throwStatusError(HttpStatusCode status, String message) {
+        HttpStatus http = HttpStatus.resolve(status.value());
 
-        ResponseEntity<Void> response = restClient.post()
-                .uri(url)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(userPayload)
-                .retrieve()
-                .toEntity(Void.class);
-
-        URI location = response.getHeaders().getLocation();
-        if (location == null) {
-            throw new RuntimeException("Keycloak did not return user location header");
+        if (http == null) {
+            throw new KeycloakServerException("Unknown Keycloak error: " + message);
         }
 
-        // Extract userId from returned URI
-        String path = location.getPath();
-        return path.substring(path.lastIndexOf("/") + 1);
+        switch (http) {
+            case NOT_FOUND -> throw new KeycloakNotFoundException(message);
+            case BAD_REQUEST, UNAUTHORIZED, FORBIDDEN ->
+                    throw new KeycloakOperationException(message);
+            default -> throw new KeycloakServerException("Keycloak server error: " + message);
+        }
     }
 
-    //  Get admin access token using password grant
-        public String getAdminAccessToken() {
+    @Override
+    public String getAdminAccessToken() {
+        try {
             Map<String, String> params = new HashMap<>();
             params.put("client_id", clientId);
             params.put("username", adminUsername);
@@ -86,111 +74,246 @@ public class KeycloakAdminImpl implements KeycloakAdminService {
                     .retrieve()
                     .body(Map.class);
 
+            if (response == null || response.get("access_token") == null) {
+                throw new KeycloakInvalidResponseException("Keycloak did not return access token");
+            }
+
             return (String) response.get("access_token");
+
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Cannot connect to Keycloak server");
         }
+    }
 
-        //  Get client role representation (for assigning roles)
-        public Map getClientRoleRepresentation(String token, String roleName) {
-            String url = keycloakServerUrl + "/admin/realms/" + realm
-                    + "/clients/" + clientUid + "/roles/" + roleName;
+    @Override
+    public String createUser(String token, RegisterStaffRequest userRequest) {
 
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("username", userRequest.getUsername());
+            payload.put("email", userRequest.getEmail());
+            payload.put("enabled", true);
+            payload.put("firstName", userRequest.getFirstName());
+            payload.put("lastName", userRequest.getLastName());
+
+            Map<String, Object> credential = new HashMap<>();
+            credential.put("type", "password");
+            credential.put("value", userRequest.getPassword());
+            credential.put("temporary", false);
+            payload.put("credentials", List.of(credential));
+
+            String url = keycloakServerUrl + "/admin/realms/" + realm + "/users";
+
+            ResponseEntity<Void> response = restClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .onStatus(
+                            HttpStatusCode::is4xxClientError,
+                            (req, res) -> throwStatusError(res.getStatusCode(),
+                                    "Cannot create user — invalid data"))
+                    .onStatus(
+                            HttpStatusCode::is5xxServerError,
+                            (req, res) -> throwStatusError(res.getStatusCode(),
+                                    "Keycloak server error while creating user"))
+                    .toEntity(Void.class);
+
+            URI location = response.getHeaders().getLocation();
+            if (location == null) {
+                throw new KeycloakInvalidResponseException("Keycloak did not return Location header for userId");
+            }
+
+            return location.getPath().substring(location.getPath().lastIndexOf('/') + 1);
+
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Connection failure while creating user");
+        }
+    }
+
+
+    @Override
+    public Map getClientRoleRepresentation(String token, String roleName) {
+
+        String url = keycloakServerUrl + "/admin/realms/" + realm
+                + "/clients/" + clientUid + "/roles/" + roleName;
+
+        try {
             return restClient.get()
                     .uri(url)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                     .retrieve()
+                    .onStatus(
+                            HttpStatus.NOT_FOUND::equals,
+                            (req, res) -> throwStatusError(res.getStatusCode(),
+                                    "Client role not found: " + roleName))
                     .body(Map.class);
+
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Error fetching client role");
         }
+    }
 
-        //  Assign client role to user (e.g., USER_WRITE)
-        public void assignClientRoleToUser(String userId, String roleName) {
-            String token = getAdminAccessToken();
-            Map role = getClientRoleRepresentation(token, roleName);
+    @Override
+    public void assignClientRoleToUser(String userId, String roleName) {
 
-            String url = keycloakServerUrl + "/admin/realms/" + realm
-                    + "/users/" + userId + "/role-mappings/clients/" + clientUid;
+        String token = getAdminAccessToken();
+        Map role = getClientRoleRepresentation(token, roleName);
 
+        String url = keycloakServerUrl + "/admin/realms/" + realm
+                + "/users/" + userId + "/role-mappings/clients/" + clientUid;
+
+        try {
             restClient.post()
                     .uri(url)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(List.of(role))
                     .retrieve()
+                    .onStatus(
+                            HttpStatusCode::is4xxClientError,
+                            (req, res) -> throwStatusError(res.getStatusCode(),
+                                    "Cannot assign client role"))
                     .toBodilessEntity();
+
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Connection failure while assigning client role");
         }
+    }
 
-        // Get realm role representation (ADMIN, DOCTOR, NURSE, PATIENT)
-        public Map getRealmRoleRepresentation(String token, String roleName) {
-            String url = keycloakServerUrl + "/admin/realms/" + realm + "/roles/" + roleName;
+    @Override
+    public Map getRealmRoleRepresentation(String token, String roleName) {
 
+        String url = keycloakServerUrl + "/admin/realms/" + realm + "/roles/" + roleName;
+
+        try {
             return restClient.get()
                     .uri(url)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                     .retrieve()
+                    .onStatus(
+                            status -> status.value() == 404,
+                            (req, res) -> {
+                                throw new KeycloakNotFoundException("Realm role not found: " + roleName);
+                            }
+                    )
+                    .onStatus(
+                            HttpStatusCode::is5xxServerError,
+                            (req, res) -> {
+                                throw new KeycloakServerException("Keycloak server error while fetching realm role");
+                            }
+                    )
                     .body(Map.class);
+
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Error fetching realm role");
         }
+    }
 
-        // Assign realm role to user (ADMIN, DOCTOR, etc.)
-        public void assignRealmRoleToUser(String userId, String roleName) {
-            String token = getAdminAccessToken();
-            Map role = getRealmRoleRepresentation(token, roleName);
 
-            String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm";
+    @Override
+    public void assignRealmRoleToUser(String userId, String roleName) {
 
+        String token = getAdminAccessToken();
+        Map role = getRealmRoleRepresentation(token, roleName);
+
+        String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm";
+
+        try {
             restClient.post()
                     .uri(url)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(List.of(role))
                     .retrieve()
+                    .onStatus(
+                            HttpStatusCode::is4xxClientError,
+                            (req, res) -> throwStatusError(res.getStatusCode(),
+                                    "Cannot assign realm role"))
                     .toBodilessEntity();
-        }
 
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Connection failure while assigning realm role");
+        }
+    }
+
+
+    @Override
     public void deleteUser(String userId) {
-        String token = getAdminAccessToken();
 
+        String token = getAdminAccessToken();
         String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId;
 
-        restClient.delete()
-                .uri(url)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .retrieve()
-                .toBodilessEntity();
+        try {
+            restClient.delete()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .retrieve()
+                    .onStatus(
+                            HttpStatus.NOT_FOUND::equals,
+                            (req, res) -> throwStatusError(res.getStatusCode(),
+                                    "User not found"))
+                    .toBodilessEntity();
+
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Failure while deleting user");
+        }
     }
 
+
+    @Override
     public void updateUser(String userId, Map<String, Object> updatedFields) {
-        String token = getAdminAccessToken();
 
+        String token = getAdminAccessToken();
         String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId;
 
-        restClient.put()
-                .uri(url)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(updatedFields)
-                .retrieve()
-                .toBodilessEntity();
+        try {
+            restClient.put()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(updatedFields)
+                    .retrieve()
+                    .onStatus(
+                            HttpStatus.NOT_FOUND::equals,
+                            (req, res) -> throwStatusError(res.getStatusCode(),
+                                    "User not found"))
+                    .toBodilessEntity();
+
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Error updating user");
+        }
     }
 
 
+    @Override
     public void updateUserPassword(String userId, String newPassword) {
-        String token = getAdminAccessToken();
 
+        String token = getAdminAccessToken();
         String url = keycloakServerUrl + "/admin/realms/" + realm + "/users/" + userId + "/reset-password";
 
-        Map<String, Object> credential = new HashMap<>();
-        credential.put("type", "password");
-        credential.put("value", newPassword);
-        credential.put("temporary", false);
+        Map<String, Object> payload = Map.of(
+                "type", "password",
+                "value", newPassword,
+                "temporary", false
+        );
 
-        restClient.put()
-                .uri(url)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(credential)
-                .retrieve()
-                .toBodilessEntity();
+        try {
+            restClient.put()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .onStatus(
+                            HttpStatus.NOT_FOUND::equals,
+                            (req, res) -> throwStatusError(res.getStatusCode(),
+                                    "User not found"))
+                    .toBodilessEntity();
+
+        } catch (RestClientException ex) {
+            throw new KeycloakServerException("Keycloak server unreachable");
+        }
     }
-
-
 }
-

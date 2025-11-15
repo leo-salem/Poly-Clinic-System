@@ -7,6 +7,7 @@ import org.springframework.util.StringUtils;
 import polyClinicSystem.example.user_management_service.dto.request.create.CreateDepartmentRequest;
 import polyClinicSystem.example.user_management_service.dto.request.update.UpdateDepartmentRequest;
 import polyClinicSystem.example.user_management_service.dto.response.DepartmentResponse;
+import polyClinicSystem.example.user_management_service.exception.customExceptions.NotFoundException;
 import polyClinicSystem.example.user_management_service.mapper.MapperSystem;
 import polyClinicSystem.example.user_management_service.model.department.Department;
 import polyClinicSystem.example.user_management_service.repository.DepartmentRepository;
@@ -31,7 +32,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Transactional
     public DepartmentResponse updateDepartment(Long id, UpdateDepartmentRequest request) {
         Department department = departmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Department not found"));
+                .orElseThrow(() -> new NotFoundException("Department not found"));
 
         if (StringUtils.hasText(request.getName()))
             department.setName(request.getName());
@@ -53,7 +54,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     public DepartmentResponse getDepartment(Long id) {
         Department department = departmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Department not found"));
+                .orElseThrow(() -> new NotFoundException("Department not found"));
         return mapperSystem.toDepartmentResponse(department);
     }
 
@@ -64,5 +65,4 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .map(mapperSystem::toDepartmentResponse)
                 .toList();
     }
-
 }

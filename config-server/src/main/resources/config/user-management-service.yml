@@ -32,8 +32,8 @@ eureka:
 
 keycloak:
   admin:
-    username: admin
-    password: admin
+    username: ${KEYCLOAK_USER}
+    password: ${KEYCLOAK_PASSWORD}
     server-url: http://localhost:8443
     realm: poly-clinic-system
     client-id: admin-cli

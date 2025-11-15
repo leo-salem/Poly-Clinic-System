@@ -15,7 +15,7 @@ import polyClinicSystem.example.user_management_service.model.department.Departm
 @Table(name = "nurses")
 public class Nurse extends User {
 
-    @ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name="department_id")
     private Department department;
 
