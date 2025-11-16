@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import polyClinicSystem.example.user_management_service.dto.request.create.CreateDepartmentRequest;
 import polyClinicSystem.example.user_management_service.dto.request.update.UpdateDepartmentRequest;
 import polyClinicSystem.example.user_management_service.dto.response.DepartmentResponse;
+import polyClinicSystem.example.user_management_service.dto.response.RoomResponse;
+import polyClinicSystem.example.user_management_service.dto.response.UserResponse;
 import polyClinicSystem.example.user_management_service.service.department.DepartmentService;
 
 import java.util.List;
@@ -44,5 +46,26 @@ public class DepartmentController {
     @GetMapping
     public ResponseEntity<List<DepartmentResponse>> getAllDepartments() {
         return ResponseEntity.ok(departmentService.getAllDepartments());
+    }
+
+    @GetMapping("/{id}/doctors")
+    public ResponseEntity<List<UserResponse>> getDoctorsByDepartment(@PathVariable Long id) {
+        return ResponseEntity.ok(departmentService.getDoctorsByDepartment(id));
+    }
+
+    @GetMapping("/{id}/rooms")
+    public ResponseEntity<List<RoomResponse>> getRoomsByDepartment(@PathVariable Long id) {
+        return ResponseEntity.ok(departmentService.getRoomsByDepartment(id));
+    }
+
+    @GetMapping("/{id}/nurses")
+    public ResponseEntity<List<UserResponse>> getNursesByDepartment(@PathVariable Long id) {
+        return ResponseEntity.ok(departmentService.getNursesByDepartment(id));
+    }
+
+    //  Get all staff (doctors + nurses) in a department
+    @GetMapping("/{id}/staff")
+    public ResponseEntity<List<UserResponse>> getAllStaffByDepartment(@PathVariable Long id) {
+        return ResponseEntity.ok(departmentService.getAllStaffByDepartment(id));
     }
 }

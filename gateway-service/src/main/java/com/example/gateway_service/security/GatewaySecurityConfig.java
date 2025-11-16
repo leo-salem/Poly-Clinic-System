@@ -46,10 +46,13 @@ public class GatewaySecurityConfig {
                         .hasAnyRole("PAYMENT_READ", "ADMIN", "PATIENT")
 
                         // User Management (admin only)
-                        .requestMatchers("/api/rooms/**", "/api/departments/**",
-                                "/api/users/**", "/api/doctors/**",
-                                "/api/nurses/**", "/api/patients/**")
+                        .requestMatchers("/api/rooms/**", "/api/departments/**")
                         .hasAnyRole("USER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE,"/api/users/**")
+                        .hasAnyRole("USER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.POST,"/api/users/staff")
+                        .hasAnyRole("USER_ADMIN", "ADMIN")
+
 
                         // Notifications
                         .requestMatchers(HttpMethod.POST, "/api/notifications/**")

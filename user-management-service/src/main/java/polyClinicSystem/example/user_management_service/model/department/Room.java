@@ -15,9 +15,9 @@ public class Room {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long roomNumber;
-    private String Type;
+    private String type;
 
     @ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
-    @JoinColumn(name="department_id")
+    @JoinColumn(name="departmentId")
     private Department department;
 }

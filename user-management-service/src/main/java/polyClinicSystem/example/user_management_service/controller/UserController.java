@@ -16,19 +16,17 @@ public class UserController {
 
     private final UserService userService;
 
-    // -------- Patients --------
     @PostMapping("/patients")
     public ResponseEntity<UserResponse> registerPatient(@RequestBody RegisterStaffRequest request) {
         return ResponseEntity.ok(userService.registerPatient(request));
     }
 
-    // -------- Staff (Doctor / Nurse) --------
+    //  Staff (Doctor / Nurse)
     @PostMapping("/staff")
     public ResponseEntity<UserResponse> addStaff(@RequestBody RegisterStaffRequest request) {
         return ResponseEntity.ok(userService.addStaff(request));
     }
 
-    // -------- Update --------
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable Long id,
@@ -36,20 +34,17 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
-    // -------- Delete --------
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
-    // -------- Get All --------
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // -------- Get by ID --------
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));

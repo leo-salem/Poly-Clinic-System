@@ -3,7 +3,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/poly-clinic-system
+          issuer-uri: http://localhost:8443/realms/poly-clinic-system
 
   cloud:
     gateway:

@@ -16,12 +16,21 @@ public class RegisterStaffRequest {
     private String email;
     private Gender gender;
     private String address;
-    private String Phone;
+    private String phone;
     private String username;
+
+    // For doctors and nurses
     private String specialization;
-    private Integer  experience_years;
+    private Integer experience_years;
+    private Long departmentId;  // Department assignment for staff
+
+    // For patients
+    private BloodType bloodType;
+
+    // Authentication
     private String password;
     private String confirmPassword;
-    private BloodType bloodType;
+
+    // Role
     private Role role;
 }

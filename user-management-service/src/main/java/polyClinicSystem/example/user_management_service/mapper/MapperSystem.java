@@ -1,6 +1,7 @@
 package polyClinicSystem.example.user_management_service.mapper;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import polyClinicSystem.example.user_management_service.dto.request.create.CreateDepartmentRequest;
 import polyClinicSystem.example.user_management_service.dto.request.create.CreateRoomRequest;
@@ -27,7 +28,10 @@ public interface MapperSystem {
     public Doctor toDoctor(RegisterStaffRequest request);
     public UserResponse toUserResponse(Nurse nurse);
     public Nurse toNurse(RegisterStaffRequest request);
+    @Mapping(target = "department", ignore = true)
+    @Mapping(target = "id", ignore = true)
     public Room toRoom(CreateRoomRequest request);
+    @Mapping(source = "department.id", target = "departmentId")
     public RoomResponse toRoomResponse(Room room);
     public Department toDepartment(CreateDepartmentRequest request);
     public DepartmentResponse toDepartmentResponse(Department department);

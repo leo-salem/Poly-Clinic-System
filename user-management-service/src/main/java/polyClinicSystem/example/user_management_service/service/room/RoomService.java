@@ -7,9 +7,14 @@ import polyClinicSystem.example.user_management_service.dto.response.RoomRespons
 import java.util.List;
 
 public interface RoomService {
+
     RoomResponse createRoom(CreateRoomRequest request);
+
     RoomResponse updateRoom(Long id, UpdateRoomRequest request);
+
     void deleteRoom(Long id);
+
     RoomResponse getRoom(Long id);
+
     List<RoomResponse> getRoomsByDepartment(Long deptId);
 }
