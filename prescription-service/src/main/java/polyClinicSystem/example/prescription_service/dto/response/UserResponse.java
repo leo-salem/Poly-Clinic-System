@@ -1,10 +1,11 @@
-package polyClinicSystem.example.user_management_service.dto.response;
+package polyClinicSystem.example.prescription_service.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import polyClinicSystem.example.user_management_service.model.enums.Role;
+import polyClinicSystem.example.prescription_service.model.Role;
+
 
 import java.time.LocalDateTime;
 

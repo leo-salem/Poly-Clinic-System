@@ -36,6 +36,8 @@ public class GatewaySecurityConfig {
                         // Prescriptions
                         .requestMatchers(HttpMethod.POST, "/api/prescriptions/**")
                         .hasAnyRole("PRESC_WRITE", "ADMIN", "DOCTOR")
+                        .requestMatchers( "/api/records/**")
+                        .hasAnyRole( "PRESC_READ","PRESC_WRITE","PRESC_ADMIN","ADMIN", "DOCTOR", "NURSE", "PATIENT")
                         .requestMatchers(HttpMethod.GET, "/api/prescriptions/**")
                         .hasAnyRole("PRESC_READ", "ADMIN", "DOCTOR", "PATIENT")
 

@@ -21,19 +21,19 @@ import polyClinicSystem.example.user_management_service.model.user.User;
 public interface MapperSystem {
 
 
-    public Patient toPatient(RegisterStaffRequest request);
-    public UserResponse toUserResponse(Patient patient);
-    public UserResponse toUserResponse(Doctor doctor);
-    public UserResponse toUserResponse(User user);
-    public Doctor toDoctor(RegisterStaffRequest request);
-    public UserResponse toUserResponse(Nurse nurse);
-    public Nurse toNurse(RegisterStaffRequest request);
-    @Mapping(target = "department", ignore = true)
-    @Mapping(target = "id", ignore = true)
-    public Room toRoom(CreateRoomRequest request);
-    @Mapping(source = "department.id", target = "departmentId")
-    public RoomResponse toRoomResponse(Room room);
-    public Department toDepartment(CreateDepartmentRequest request);
-    public DepartmentResponse toDepartmentResponse(Department department);
+     Patient toPatient(RegisterStaffRequest request);
+     UserResponse toUserResponse(Patient patient);
+     UserResponse toUserResponse(Doctor doctor);
+     UserResponse toUserResponse(User user);
+     Doctor toDoctor(RegisterStaffRequest request);
+     UserResponse toUserResponse(Nurse nurse);
+     Nurse toNurse(RegisterStaffRequest request);
+     @Mapping(target = "department", ignore = true)
+     @Mapping(target = "id", ignore = true)
+     Room toRoom(CreateRoomRequest request);
+     @Mapping(source = "department.id", target = "departmentId")
+     RoomResponse toRoomResponse(Room room);
+     Department toDepartment(CreateDepartmentRequest request);
+     DepartmentResponse toDepartmentResponse(Department department);
 
 }

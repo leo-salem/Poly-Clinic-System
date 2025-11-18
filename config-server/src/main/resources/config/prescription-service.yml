@@ -31,7 +31,13 @@ eureka:
 
 
 
-
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
 
 
 

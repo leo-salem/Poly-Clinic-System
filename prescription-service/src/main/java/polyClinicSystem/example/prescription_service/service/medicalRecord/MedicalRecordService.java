@@ -1,0 +1,10 @@
+package polyClinicSystem.example.prescription_service.service.medicalRecord;
+
+import jakarta.servlet.http.HttpServletRequest;
+import polyClinicSystem.example.prescription_service.dto.response.MedicalRecordResponse;
+
+public interface MedicalRecordService {
+     MedicalRecordResponse getOrCreateRecord(Long patientId, HttpServletRequest request) ;
+    MedicalRecordResponse getRecord(Long patientId, HttpServletRequest request) ;
+}
+
