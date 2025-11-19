@@ -21,12 +21,13 @@ import polyClinicSystem.example.user_management_service.model.user.User;
 public interface MapperSystem {
 
 
+     @Mapping(target = "keycloakID", ignore = true)
      Patient toPatient(RegisterStaffRequest request);
-     UserResponse toUserResponse(Patient patient);
-     UserResponse toUserResponse(Doctor doctor);
+     @Mapping(target = "keycloakID", source = "keycloakID")
      UserResponse toUserResponse(User user);
+     @Mapping(target = "keycloakID", ignore = true)
      Doctor toDoctor(RegisterStaffRequest request);
-     UserResponse toUserResponse(Nurse nurse);
+     @Mapping(target = "keycloakID", ignore = true)
      Nurse toNurse(RegisterStaffRequest request);
      @Mapping(target = "department", ignore = true)
      @Mapping(target = "id", ignore = true)

@@ -45,12 +45,15 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/ById/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
+    @GetMapping("/ByKeycloak/{keycloakId}")
+    public ResponseEntity<UserResponse> getUserByKeycloakId(@PathVariable String keycloakId) {
+        return ResponseEntity.ok(userService.getUserByKeycloakId(keycloakId));
+    }
 
-    // -------- Change Password --------
     @PutMapping("/{id}/change-password")
     public ResponseEntity<Void> changePassword(
             @PathVariable Long id,

@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class CreatePrescription {
     private Long recordId;
-    private Long patientId;
+    private String patientId;
 
     private String diagnose;
     private String medicine;

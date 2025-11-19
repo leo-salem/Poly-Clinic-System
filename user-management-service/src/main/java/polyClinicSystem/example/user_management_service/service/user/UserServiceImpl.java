@@ -322,9 +322,9 @@ public class UserServiceImpl implements UserService {
         User updated = userRepository.findById(id).orElseThrow();
         log.info("User updated successfully: {}", id);
 
-        if (updated instanceof Doctor) return mapperSystem.toUserResponse((Doctor) updated);
-        if (updated instanceof Nurse) return mapperSystem.toUserResponse((Nurse) updated);
-        return mapperSystem.toUserResponse((Patient) updated);
+        if (updated instanceof Doctor) return mapperSystem.toUserResponse(updated);
+        if (updated instanceof Nurse) return mapperSystem.toUserResponse( updated);
+        return mapperSystem.toUserResponse( updated);
     }
 
     @Override
@@ -360,5 +360,12 @@ public class UserServiceImpl implements UserService {
         return mapperSystem.toUserResponse(
                 userRepository.findById(id)
                         .orElseThrow(() -> new NotFoundException("User not found with id: " + id)));
+    }
+
+    @Override
+    public UserResponse getUserByKeycloakId(String keycloakId) {
+        return mapperSystem.toUserResponse(
+                userRepository.findByKeycloakID(keycloakId)
+                        .orElseThrow(() -> new NotFoundException("User not found with id: " + keycloakId)));
     }
 }

@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 public class UserResponse {
     private Long id;
+    private String keycloakID;
     private Role role;
     private String firstName;
     private String lastName;

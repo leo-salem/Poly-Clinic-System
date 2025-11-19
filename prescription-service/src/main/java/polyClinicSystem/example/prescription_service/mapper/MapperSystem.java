@@ -3,9 +3,7 @@ package polyClinicSystem.example.prescription_service.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValuePropertyMappingStrategy;
-import polyClinicSystem.example.prescription_service.dto.request.CreateMedicalRecord;
 import polyClinicSystem.example.prescription_service.dto.request.CreatePrescription;
-import polyClinicSystem.example.prescription_service.dto.request.UpdatePrescription;
 import polyClinicSystem.example.prescription_service.dto.response.MedicalRecordResponse;
 import polyClinicSystem.example.prescription_service.dto.response.PrescriptionResponse;
 import polyClinicSystem.example.prescription_service.dto.response.PrescriptionSlimDTO;
@@ -28,8 +26,7 @@ public interface MapperSystem {
     @Mapping(target = "medicalRecord", ignore = true)
     Prescription toPrescription(CreatePrescription request);
 
-    MedicalRecord toMedicalRecord(CreateMedicalRecord request);
-
+    @Mapping(target = "patientId", source = "patientKeycloakId")
     @Mapping(source = "prescriptions", target = "prescriptions")
     MedicalRecordResponse toMedicalRecordResponse(MedicalRecord medicalRecord);
 

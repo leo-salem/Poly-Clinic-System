@@ -25,8 +25,8 @@ public class Prescription {
     private String diagnose;
     private String medicine;
 
-    private Long doctorId;  // from current user
-    private Long patientId; // from DTO
+    private String doctorKeycloakId;  // from current user
+    private String patientKeycloakId; // from DTO
 
     @CreatedDate
     private LocalDateTime createdAt;

@@ -9,5 +9,5 @@ import java.util.Optional;
 @Repository
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Long> {
 
-    Optional<MedicalRecord> findByPatientId(Long patientId);
+    Optional<MedicalRecord> findByPatientKeycloakId(String userId);
 }

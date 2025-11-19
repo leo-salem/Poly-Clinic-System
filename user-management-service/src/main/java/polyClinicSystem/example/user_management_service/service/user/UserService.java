@@ -20,4 +20,6 @@ public interface UserService {
     List<UserResponse> getAllUsers();
 
     UserResponse getUserById(Long Id);
+
+    UserResponse getUserByKeycloakId(String keycloakId);
 }

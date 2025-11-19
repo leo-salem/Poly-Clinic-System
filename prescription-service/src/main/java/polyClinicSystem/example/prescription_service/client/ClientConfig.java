@@ -21,7 +21,7 @@ public class ClientConfig {
     public UserClient userServiceClientInterface(RestClient.Builder restClientBuilder) {
 
         RestClient restClient = restClientBuilder
-                .baseUrl("lb://USER-MANAGEMENT-SERVICE")   // متكتبش capital غلط
+                .baseUrl("lb://USER-MANAGEMENT-SERVICE")
                 .defaultStatusHandler(
                         HttpStatusCode::is4xxClientError,
                         (request, response) -> {

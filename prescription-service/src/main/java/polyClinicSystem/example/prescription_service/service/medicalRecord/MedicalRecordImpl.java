@@ -33,7 +33,7 @@ public class MedicalRecordImpl implements MedicalRecordService {
         log.debug("Fetching current user with ID: {}", userId);
 
         try {
-            return userClient.getUserById(userId);
+            return userClient.getUserByKeycloakId(userId);
         } catch (Exception e) {
             log.error("Failed to fetch user with ID: {}", userId, e);
             throw new NotFoundException("User not found with id: " + userId);
@@ -43,61 +43,61 @@ public class MedicalRecordImpl implements MedicalRecordService {
 
     //  Validate that user can access medical record (doctor or the patient themselves)
 
-    private void validateAccess(UserResponse currentUser, Long patientId) {
+    private void validateAccess(UserResponse currentUser, String userId) {
         // Convert String ID to Long for comparison
-        Long currentUserId = currentUser.getId();
+        String currentUserId = currentUser.getKeycloakID();
 
         boolean isDoctor = "DOCTOR".equals(currentUser.getRole());
-        boolean isOwner = currentUserId.equals(patientId);
+        boolean isOwner = currentUserId.equals(userId);
 
         if (!isDoctor && !isOwner) {
             log.warn("User {} denied access to medical record of patient {}",
-                    currentUser.getId(), patientId);
+                    currentUser.getId(), userId);
             throw new AccessDeniedException("You do not have permission to access this medical record");
         }
     }
 
     @Override
     @Transactional
-    public MedicalRecordResponse getOrCreateRecord(Long patientId, HttpServletRequest request) {
-        log.debug("Getting or creating medical record for patient: {}", patientId);
+    public MedicalRecordResponse getOrCreateRecord(String userId, HttpServletRequest request) {
+        log.debug("Getting or creating medical record for patient: {}", userId);
 
         UserResponse currentUser = getCurrentUser(request);
-        validateAccess(currentUser, patientId);
+        validateAccess(currentUser, userId);
 
         // Try to find existing record
-        return repository.findByPatientId(patientId)
+        return repository.findByPatientKeycloakId(userId)
                 .map(record -> {
-                    log.info("Found existing medical record: {} for patient: {}", record.getId(), patientId);
+                    log.info("Found existing medical record: {} for patient: {}", record.getId(), userId);
                     return mapper.toMedicalRecordResponse(record);
                 })
                 .orElseGet(() -> {
-                    log.info("Creating new medical record for patient: {}", patientId);
+                    log.info("Creating new medical record for patient: {}", userId);
 
                     MedicalRecord record = MedicalRecord.builder()
-                            .patientId(patientId)
+                            .patientKeycloakId(userId)
                             .build();
 
                     MedicalRecord saved = repository.save(record);
 
                     log.info("Medical record created successfully: {} for patient: {}",
-                            saved.getId(), patientId);
+                            saved.getId(), userId);
 
                     return mapper.toMedicalRecordResponse(saved);
                 });
     }
 
     @Override
-    public MedicalRecordResponse getRecord(Long patientId, HttpServletRequest request) {
-        log.debug("Fetching medical record for patient: {}", patientId);
+    public MedicalRecordResponse getRecord(String userId, HttpServletRequest request) {
+        log.debug("Fetching medical record for patient: {}", userId);
 
         UserResponse currentUser = getCurrentUser(request);
-        validateAccess(currentUser, patientId);
+        validateAccess(currentUser, userId);
 
-        MedicalRecord record = repository.findByPatientId(patientId)
-                .orElseThrow(() -> new NotFoundException("Medical record not found for patient: " + patientId));
+        MedicalRecord record = repository.findByPatientKeycloakId(userId)
+                .orElseThrow(() -> new NotFoundException("Medical record not found for patient: " + userId));
 
-        log.info("Medical record fetched successfully: {} for patient: {}", record.getId(), patientId);
+        log.info("Medical record fetched successfully: {} for patient: {}", record.getId(), userId);
 
         return mapper.toMedicalRecordResponse(record);
     }

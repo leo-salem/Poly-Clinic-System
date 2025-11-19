@@ -8,6 +8,9 @@ import polyClinicSystem.example.prescription_service.dto.response.UserResponse;
 @HttpExchange
 public interface UserClient {
 
-    @GetExchange("/api/users/{id}")
-    UserResponse getUserById(@PathVariable String id);
+    @GetExchange("/api/users/ById/{id}")
+    UserResponse getUserById(@PathVariable Long id);
+    @GetExchange("/api/users/ByKeycloak/{keycloakId}")
+    UserResponse getUserByKeycloakId(@PathVariable String keycloakId);
+
 }

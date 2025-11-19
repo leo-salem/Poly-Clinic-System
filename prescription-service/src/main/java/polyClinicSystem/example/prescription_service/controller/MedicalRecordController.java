@@ -7,9 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import polyClinicSystem.example.prescription_service.dto.response.MedicalRecordResponse;
+import polyClinicSystem.example.prescription_service.exception.customExceptions.AccessDeniedException;
 import polyClinicSystem.example.prescription_service.service.medicalRecord.MedicalRecordService;
 
-import java.nio.file.AccessDeniedException;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,20 +18,20 @@ public class MedicalRecordController {
 
     private final MedicalRecordService service;
 
-    @GetMapping("/{patientId}")
+    @GetMapping("/{userId}")
     public ResponseEntity<MedicalRecordResponse> getRecord(
-            @PathVariable Long patientId,
+            @PathVariable String userId,
             HttpServletRequest request) throws AccessDeniedException {
 
-        return ResponseEntity.ok(service.getRecord(patientId, request));
+        return ResponseEntity.ok(service.getRecord(userId, request));
     }
 
-    @PostMapping("/{patientId}")
+    @PostMapping("/{userId}")
     public ResponseEntity<MedicalRecordResponse> createOrGet(
-            @PathVariable Long patientId,
+            @PathVariable String userId,
             HttpServletRequest request) throws AccessDeniedException {
 
-        MedicalRecordResponse response = service.getOrCreateRecord(patientId, request);
+        MedicalRecordResponse response = service.getOrCreateRecord(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

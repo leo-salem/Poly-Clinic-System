@@ -41,7 +41,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         log.debug("Fetching current user with ID: {}", userId);
 
         try {
-            return userClient.getUserById(userId);
+            return userClient.getUserById(Long.valueOf(userId));
         } catch (Exception e) {
             log.error("Failed to fetch user with ID: {}", userId, e);
             throw new NotFoundException("User not found with id: " + userId);
@@ -62,9 +62,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
      * Validate that user can access prescription (either the doctor who created it or the patient)
      */
     private void validatePrescriptionAccess(UserResponse user, Prescription prescription) {
-        boolean isDoctor = "DOCTOR".equals(user.getRole()) &&
-                prescription.getDoctorId().equals(Long.valueOf(user.getId()));
-        boolean isPatient = prescription.getPatientId().equals(user.getId());
+        boolean isDoctor = prescription.getDoctorKeycloakId().equals(user.getKeycloakID());
+        boolean isPatient = prescription.getPatientKeycloakId().equals(user.getKeycloakID());
 
         if (!isDoctor && !isPatient) {
             log.warn("User {} denied access to prescription {}", user.getId(), prescription.getId());
@@ -85,7 +84,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                 .orElseThrow(() -> new NotFoundException("Medical record not found with id: " + request.getRecordId()));
 
         // Verify the medical record belongs to the specified patient
-        if (!record.getPatientId().equals(request.getPatientId())) {
+        if (!record.getPatientKeycloakId().equals(request.getPatientId())) {
             log.error("Medical record {} does not belong to patient {}",
                     request.getRecordId(), request.getPatientId());
             throw new IllegalArgumentException("Medical record does not belong to the specified patient");
@@ -93,8 +92,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
         // Create prescription
         Prescription prescription = mapper.toPrescription(request);
-        prescription.setDoctorId(doctor.getId());
-        prescription.setPatientId(request.getPatientId());
+        prescription.setDoctorKeycloakId(doctor.getKeycloakID());
+        prescription.setPatientKeycloakId(request.getPatientId());
         prescription.setMedicalRecord(record);
 
         // Add to medical record using bidirectional helper
@@ -121,9 +120,9 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         UserResponse doctor = getCurrentUser(httpRequest);
         validateDoctor(doctor);
 
-        if (!prescription.getDoctorId().equals(doctor.getId())) {
+        if (!prescription.getDoctorKeycloakId().equals(doctor.getKeycloakID())) {
             log.warn("Doctor {} attempted to update prescription {} created by doctor {}",
-                    doctor.getId(), id, prescription.getDoctorId());
+                    doctor.getKeycloakID(), id, prescription.getDoctorKeycloakId());
             throw new AccessDeniedException("Only the doctor who created this prescription can update it");
         }
 
@@ -155,9 +154,9 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         UserResponse doctor = getCurrentUser(httpRequest);
         validateDoctor(doctor);
 
-        if (!prescription.getDoctorId().equals(doctor.getId())) {
+        if (!prescription.getDoctorKeycloakId().equals(doctor.getKeycloakID())) {
             log.warn("Doctor {} attempted to delete prescription {} created by doctor {}",
-                    doctor.getId(), id, prescription.getDoctorId());
+                    doctor.getId(), id, prescription.getDoctorKeycloakId());
             throw new AccessDeniedException("Only the doctor who created this prescription can delete it");
         }
 

@@ -29,7 +29,7 @@ public abstract class User {
     private String firstName;
     private String lastName;
     private String email;
-    private String Phone;
+    private String phone;
     private String username;
     @Enumerated(EnumType.STRING)
     private Role role;

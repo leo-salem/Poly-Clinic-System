@@ -14,11 +14,13 @@ import java.time.LocalDateTime;
 @Builder
 public class UserResponse {
     private Long id;
+    private String keycloakID;
     private Role role;
     private String firstName;
     private String lastName;
     private String email;
     private String username;
+    private String phone;
     private String address;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

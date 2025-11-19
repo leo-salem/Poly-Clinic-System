@@ -23,7 +23,7 @@ public class MedicalRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long patientId;
+    private String patientKeycloakId;
 
     @CreatedDate
     private LocalDateTime createdAt;

@@ -13,7 +13,7 @@ import java.util.List;
 @Builder
 public class MedicalRecordResponse {
     private Long id;
-    private Long patientId;
+    private String patientId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
