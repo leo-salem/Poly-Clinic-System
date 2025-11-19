@@ -21,7 +21,6 @@ public class Prescription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String diagnose;
     private String medicine;
 

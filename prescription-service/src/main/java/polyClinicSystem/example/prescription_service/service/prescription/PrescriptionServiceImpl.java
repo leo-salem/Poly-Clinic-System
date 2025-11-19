@@ -41,7 +41,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         log.debug("Fetching current user with ID: {}", userId);
 
         try {
-            return userClient.getUserById(Long.valueOf(userId));
+            return userClient.getUserByKeycloakId(userId);
         } catch (Exception e) {
             log.error("Failed to fetch user with ID: {}", userId, e);
             throw new NotFoundException("User not found with id: " + userId);
@@ -52,7 +52,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
      * Validate that user is a doctor
      */
     private void validateDoctor(UserResponse user) {
-        if (!"DOCTOR".equals(user.getRole())) {
+        if (!"DOCTOR".equals(user.getRole().name())) {
             log.warn("Non-doctor user {} attempted to perform doctor-only action", user.getId());
             throw new AccessDeniedException("Only doctors can perform this action");
         }
@@ -93,7 +93,6 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         // Create prescription
         Prescription prescription = mapper.toPrescription(request);
         prescription.setDoctorKeycloakId(doctor.getKeycloakID());
-        prescription.setPatientKeycloakId(request.getPatientId());
         prescription.setMedicalRecord(record);
 
         // Add to medical record using bidirectional helper

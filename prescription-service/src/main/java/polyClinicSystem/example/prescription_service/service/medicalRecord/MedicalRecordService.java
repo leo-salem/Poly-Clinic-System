@@ -5,6 +5,5 @@ import polyClinicSystem.example.prescription_service.dto.response.MedicalRecordR
 
 public interface MedicalRecordService {
      MedicalRecordResponse getOrCreateRecord(String userId, HttpServletRequest request) ;
-    MedicalRecordResponse getRecord(String userId, HttpServletRequest request) ;
 }
 

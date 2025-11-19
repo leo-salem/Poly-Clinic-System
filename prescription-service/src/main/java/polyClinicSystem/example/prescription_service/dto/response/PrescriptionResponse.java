@@ -16,8 +16,8 @@ public class PrescriptionResponse {
     private String diagnose;
     private String medicine;
 
-    private Long doctorId;
-    private Long patientId;
+    private String doctorId;
+    private String patientId;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

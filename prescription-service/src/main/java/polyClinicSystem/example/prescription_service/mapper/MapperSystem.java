@@ -15,7 +15,8 @@ import polyClinicSystem.example.prescription_service.model.Prescription;
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
 )
 public interface MapperSystem {
-
+    @Mapping(source = "doctorKeycloakId" ,target = "doctorId")
+    @Mapping(source = "patientKeycloakId",target = "patientId")
     @Mapping(source = "medicalRecord.id", target = "recordId")
     PrescriptionResponse toPrescriptionResponse(Prescription prescription);
 
@@ -24,6 +25,8 @@ public interface MapperSystem {
     //and this will get conflict to map struct
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "medicalRecord", ignore = true)
+    @Mapping(target = "doctorKeycloakId", ignore = true)
+    @Mapping(source = "patientId",target = "patientKeycloakId")
     Prescription toPrescription(CreatePrescription request);
 
     @Mapping(target = "patientId", source = "patientKeycloakId")

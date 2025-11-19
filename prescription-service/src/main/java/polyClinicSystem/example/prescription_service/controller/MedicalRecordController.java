@@ -18,14 +18,6 @@ public class MedicalRecordController {
 
     private final MedicalRecordService service;
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<MedicalRecordResponse> getRecord(
-            @PathVariable String userId,
-            HttpServletRequest request) throws AccessDeniedException {
-
-        return ResponseEntity.ok(service.getRecord(userId, request));
-    }
-
     @PostMapping("/{userId}")
     public ResponseEntity<MedicalRecordResponse> createOrGet(
             @PathVariable String userId,

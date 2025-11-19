@@ -47,8 +47,9 @@ public class MedicalRecordImpl implements MedicalRecordService {
         // Convert String ID to Long for comparison
         String currentUserId = currentUser.getKeycloakID();
 
-        boolean isDoctor = "DOCTOR".equals(currentUser.getRole());
-        boolean isOwner = currentUserId.equals(userId);
+        boolean isDoctor = "DOCTOR".equals(currentUser.getRole().name());
+        boolean isOwner = (currentUserId.equals(userId)
+                && currentUser.getRole().name().equals("PATIENT"));
 
         if (!isDoctor && !isOwner) {
             log.warn("User {} denied access to medical record of patient {}",
@@ -72,11 +73,16 @@ public class MedicalRecordImpl implements MedicalRecordService {
                     return mapper.toMedicalRecordResponse(record);
                 })
                 .orElseGet(() -> {
+                    MedicalRecord record;
                     log.info("Creating new medical record for patient: {}", userId);
-
-                    MedicalRecord record = MedicalRecord.builder()
-                            .patientKeycloakId(userId)
-                            .build();
+                    if(currentUser.getRole().name().equals("PATIENT")) {
+                         record = MedicalRecord.builder()
+                                .patientKeycloakId(userId)
+                                .build();
+                    }
+                    else{
+                        throw new AccessDeniedException("ha ha ha ha doctor only patients can get their records");
+                    }
 
                     MedicalRecord saved = repository.save(record);
 
@@ -87,18 +93,4 @@ public class MedicalRecordImpl implements MedicalRecordService {
                 });
     }
 
-    @Override
-    public MedicalRecordResponse getRecord(String userId, HttpServletRequest request) {
-        log.debug("Fetching medical record for patient: {}", userId);
-
-        UserResponse currentUser = getCurrentUser(request);
-        validateAccess(currentUser, userId);
-
-        MedicalRecord record = repository.findByPatientKeycloakId(userId)
-                .orElseThrow(() -> new NotFoundException("Medical record not found for patient: " + userId));
-
-        log.info("Medical record fetched successfully: {} for patient: {}", record.getId(), userId);
-
-        return mapper.toMedicalRecordResponse(record);
-    }
 }
