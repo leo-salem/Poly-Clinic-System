@@ -20,7 +20,6 @@ import polyClinicSystem.example.user_management_service.model.user.User;
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface MapperSystem {
 
-
      @Mapping(target = "keycloakID", ignore = true)
      Patient toPatient(RegisterStaffRequest request);
      @Mapping(target = "keycloakID", source = "keycloakID")

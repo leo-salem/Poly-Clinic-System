@@ -14,6 +14,33 @@ spring:
     host: localhost
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      database: ${REDIS_DATABASE:0}
+      timeout: 2000ms
+      jedis:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: -1ms
+  kafka:
+    bootstrap-servers: localhost:29092
+    consumer:
+      group-id: appointment-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
 server:
   port: 8083
 
@@ -38,7 +65,14 @@ logging:
     org.springframework.web.servlet.DispatcherServlet: DEBUG
 
 
+# Custom application properties
+appointment:
+  reservation:
+    ttl-minutes: 10  # How long a PENDING reservation is held
 
+stripe:
+  api:
+    key: ${STRIPE_SECRET_KEY:sk_test_your_stripe_key}
 
 
 

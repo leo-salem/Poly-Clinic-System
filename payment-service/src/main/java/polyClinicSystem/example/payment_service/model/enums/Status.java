@@ -2,7 +2,10 @@ package polyClinicSystem.example.payment_service.model.enums;
 
 public enum Status {
     PENDING,
-    SUCCESS,
+    AUTHORIZED,
+    CAPTURED,
     FAILED,
-    REFUNDED
+    CANCELLED,
+    REFUNDED,
+    COMPLETED
 }

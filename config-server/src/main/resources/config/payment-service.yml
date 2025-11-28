@@ -29,6 +29,9 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
 
+stripe:
+  api:
+    key: ${STRIPE_SECRET_KEY:sk_test_your_stripe_key}
 
 logging:
   level:
