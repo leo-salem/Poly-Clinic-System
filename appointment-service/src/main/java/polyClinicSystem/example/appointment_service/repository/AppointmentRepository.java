@@ -1,7 +1,6 @@
 package polyClinicSystem.example.appointment_service.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import polyClinicSystem.example.appointment_service.model.entity.Appointment;
@@ -12,8 +11,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.List;
 import java.time.LocalDate;
-
-import static jakarta.persistence.ParameterMode.IN;
 
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
@@ -153,7 +150,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             Status status
     );
 
-
+    /**
+     * Get all booked periods for a doctor on a specific date.
+     * Used to calculate available slots efficiently.
+     */
     @Query("SELECT a.period FROM Appointment a " +
             "WHERE a.doctorKeycloakId = :doctorKeycloakId " +
             "AND a.appointmentDate = :date " +
@@ -163,7 +163,4 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDate date,
             List<Status> statuses
     );
-
-
-
 }

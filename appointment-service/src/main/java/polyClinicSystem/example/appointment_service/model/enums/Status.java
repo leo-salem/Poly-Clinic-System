@@ -13,6 +13,6 @@ public enum Status {
     // Admin rejected
     COMPLETED,
     // Appointment completed (it's date has passed if it's happen or not)
-    CANCELLED
+    CANCELLED,
     // Cancelled by patient or system
 }

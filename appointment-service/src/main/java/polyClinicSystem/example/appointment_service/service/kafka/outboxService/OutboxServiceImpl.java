@@ -6,9 +6,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import polyClinicSystem.example.appointment_service.dto.event.AppointmentRejectedEvent;
-import polyClinicSystem.example.appointment_service.dto.event.AppointmentScheduledEvent;
-import polyClinicSystem.example.appointment_service.dto.event.PaymentConfirmedEvent;
+import polyClinicSystem.example.appointment_service.dto.event.*;
 import polyClinicSystem.example.appointment_service.model.entity.Appointment;
 import polyClinicSystem.example.appointment_service.model.event.OutboxEvent;
 import polyClinicSystem.example.appointment_service.repository.OutboxEventRepository;
@@ -91,6 +89,46 @@ public class OutboxServiceImpl implements OutboxService{
                 "appointment.rejected", event);
     }
 
+    @Transactional
+    public void publishAppointmentCancelledEvent(Appointment appointment, String cancellationReason) {
+        log.debug("Publishing appointment cancelled event for appointment: {}", appointment.getId());
+
+        AppointmentCancelledEvent event = AppointmentCancelledEvent.builder()
+                .appointmentId(appointment.getId())
+                .reservationToken(appointment.getReservationToken())
+                .doctorKeycloakId(appointment.getDoctorKeycloakId())
+                .patientKeycloakId(appointment.getPatientKeycloakId())
+                .paymentIntentId(appointment.getPaymentIntentId())
+                .appointmentDate(appointment.getAppointmentDate())
+                .period(appointment.getPeriod().name())
+                .cancellationReason(cancellationReason)
+                .timestamp(Instant.now())
+                .build();
+
+        saveOutboxEvent("appointment", String.valueOf(appointment.getId()),
+                "appointment.cancelled", event);
+    }
+
+    @Transactional
+    public void publishAppointmentCompletedEvent(Appointment appointment) {
+        log.debug("Publishing appointment completed event for appointment: {}", appointment.getId());
+
+        AppointmentCompletedEvent event = AppointmentCompletedEvent.builder()
+                .appointmentId(appointment.getId())
+                .doctorKeycloakId(appointment.getDoctorKeycloakId())
+                .nurseKeycloakId(appointment.getNurseKeycloakId())
+                .patientKeycloakId(appointment.getPatientKeycloakId())
+                .departmentId(appointment.getDepartmentId())
+                .roomId(appointment.getRoomId())
+                .appointmentDate(appointment.getAppointmentDate())
+                .period(appointment.getPeriod().name())
+                .timestamp(Instant.now())
+                .build();
+
+        saveOutboxEvent("appointment", String.valueOf(appointment.getId()),
+                "appointment.completed", event);
+    }
+
     public void saveOutboxEvent(String aggregateType, String aggregateId, String eventType, Object payload) {
         try {
             String payloadJson = objectMapper.writeValueAsString(payload);
@@ -114,5 +152,4 @@ public class OutboxServiceImpl implements OutboxService{
             throw new RuntimeException("Failed to create outbox event", e);
         }
     }
-
 }
