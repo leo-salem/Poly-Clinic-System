@@ -19,7 +19,7 @@
         </processorPath>
         <module name="gateway-service" />
       </profile>
-      <profile name="Annotation profile for appointment-service" enabled="true">
+      <profile name="Annotation profile for notification-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -32,8 +32,8 @@
         <module name="payment-service" />
         <module name="appointment-service" />
         <module name="prescription-service" />
-        <module name="user-management-service" />
         <module name="notification-service" />
+        <module name="user-management-service" />
       </profile>
     </annotationProcessing>
   </component>

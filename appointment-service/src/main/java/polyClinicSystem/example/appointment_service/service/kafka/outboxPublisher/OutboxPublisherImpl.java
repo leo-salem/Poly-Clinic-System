@@ -33,6 +33,10 @@ public class OutboxPublisherImpl implements OutboxPublisher {
                         // Determine Kafka topic based on event type
                         String topic = getTopicForEventType(event.getEventType());
 
+                /**
+                 * don't need this line because it's already object (it built in this service as object (dto) and sent)
+                         Object payload = objectMapper.readValue(event.getPayload(), Object. Class);
+                 **/
                         // Send to Kafka
                         kafkaTemplate.send(topic, event.getAggregateId(), event.getPayload())
                                 .whenComplete((result, ex) -> {
@@ -84,5 +88,29 @@ public class OutboxPublisherImpl implements OutboxPublisher {
             case "appointment.rejected" -> "appointment-rejected";
             default -> "appointment-events";
         };
+    }
+
+    /**
+     * Cleanup old sent events (runs daily at 3 AM)
+     */
+    @Scheduled(cron = "0 0 3 * * *")
+    @Transactional
+    public void cleanupOldEvents() {
+        log.debug("Starting cleanup of old outbox events");
+
+        try {
+            Instant cutoffTime = Instant.now().minusSeconds(30 * 24 * 60 * 60); // 30 days ago
+
+            List<OutboxEvent> oldEvents = outboxRepository
+                    .findBySentTrueAndSentAtBefore(cutoffTime);
+
+            if (!oldEvents.isEmpty()) {
+                outboxRepository.deleteAll(oldEvents);
+                log.info("Cleaned up {} old outbox events", oldEvents.size());
+            }
+
+        } catch (Exception e) {
+            log.error("Error during outbox cleanup", e);
+        }
     }
 }

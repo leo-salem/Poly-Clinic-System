@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import polyClinicSystem.example.appointment_service.model.event.OutboxEvent;
 
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -38,4 +39,9 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> 
     );
 
     List<OutboxEvent> findTop100BySentFalseOrderByCreatedAtAsc();
+
+    /**
+     * Find old sent events for cleanup
+     */
+    List<OutboxEvent> findBySentTrueAndSentAtBefore(Instant cutoffTime);
 }
