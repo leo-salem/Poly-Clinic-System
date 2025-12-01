@@ -15,6 +15,7 @@ public class UserResponse {
     private Long id;
     private String keycloakID;
     private Role role;
+    private String phone;
     private String firstName;
     private String lastName;
     private String email;

@@ -5,10 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import polyClinicSystem.example.appointment_service.exception.customExceptions.BadRequestException;
-import polyClinicSystem.example.appointment_service.exception.customExceptions.ConflictException;
-import polyClinicSystem.example.appointment_service.exception.customExceptions.NotFoundException;
-import polyClinicSystem.example.appointment_service.exception.customExceptions.PaymentException;
+import polyClinicSystem.example.appointment_service.exception.customExceptions.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -37,6 +34,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handlePaymentException(PaymentException ex) {
         return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentException(AccessDeniedException ex) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {

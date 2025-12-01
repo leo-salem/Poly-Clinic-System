@@ -27,9 +27,7 @@ public class GatewaySecurityConfig {
 
                         // Appointments
                         .requestMatchers(HttpMethod.POST, "/api/appointments/**")
-                        .hasAnyRole("APPT_ADMIN", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/appointments/**")
-                        .hasAnyRole("APPT_ADMIN", "ADMIN")
+                        .hasAnyRole("APPT_ADMIN", "ADMIN", "PATIENT")
                         .requestMatchers(HttpMethod.GET, "/api/appointments/**")
                         .hasAnyRole("APPT_READ", "ADMIN", "DOCTOR", "NURSE", "PATIENT")
 

@@ -7,27 +7,26 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import polyClinicSystem.example.appointment_service.client.PaymentClient;
+import polyClinicSystem.example.appointment_service.client.UserClient;
 import polyClinicSystem.example.appointment_service.dto.request.*;
 import polyClinicSystem.example.appointment_service.dto.response.AppointmentResponse;
 import polyClinicSystem.example.appointment_service.dto.response.AvailableSlotResponse;
 import polyClinicSystem.example.appointment_service.dto.response.ReservationResponse;
-import polyClinicSystem.example.appointment_service.exception.customExceptions.BadRequestException;
-import polyClinicSystem.example.appointment_service.exception.customExceptions.ConflictException;
-import polyClinicSystem.example.appointment_service.exception.customExceptions.NotFoundException;
-import polyClinicSystem.example.appointment_service.exception.customExceptions.PaymentException;
+import polyClinicSystem.example.appointment_service.dto.response.UserResponse;
+import polyClinicSystem.example.appointment_service.exception.customExceptions.*;
 import polyClinicSystem.example.appointment_service.model.entity.Appointment;
 import polyClinicSystem.example.appointment_service.model.entity.unavailability.DayUnavailability;
 import polyClinicSystem.example.appointment_service.model.entity.unavailability.VacationUnavailability;
 import polyClinicSystem.example.appointment_service.model.enums.Period;
-
-
 import polyClinicSystem.example.appointment_service.model.enums.Status;
 import polyClinicSystem.example.appointment_service.repository.AppointmentRepository;
 import polyClinicSystem.example.appointment_service.repository.DayUnavailabilityRepository;
 import polyClinicSystem.example.appointment_service.repository.VacationUnavailabilityRepository;
 import polyClinicSystem.example.appointment_service.service.ReservationLock.ReservationLockService;
 import polyClinicSystem.example.appointment_service.service.kafka.outboxService.OutboxService;
+import polyClinicSystem.example.appointment_service.service.token.TokenService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -46,24 +45,76 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final OutboxService outboxService;
     private final PaymentClient paymentService;
     private final ReservationLockService reservationLockService;
+    private final TokenService tokenService;
+    private final UserClient userClient;
 
     @Value("${appointment.reservation.ttl-minutes:10}")
     private int reservationTtlMinutes;
+    private UserResponse getCurrentUser(HttpServletRequest request) throws NotFoundException {
+        String userId = tokenService.extractUserId(request);
+        log.debug("Fetching current user with ID: {}", userId);
+
+        try {
+            return userClient.getUserByKeycloakId(userId);
+        } catch (Exception e) {
+            log.error("Failed to fetch user with ID: {}", userId, e);
+            throw new NotFoundException("User not found with id: " + userId);
+        }
+    }
+
+    private String extractUserRole(HttpServletRequest request) {
+        UserResponse currentUser = getCurrentUser(request);
+        return currentUser.getRole().name();
+    }
+
+    private void checkAdminAccess(HttpServletRequest request) {
+        String role = extractUserRole(request);
+        if (!"ADMIN".equals(role)) {
+            throw new AccessDeniedException("Admin access required");
+        }
+    }
+
+    private void checkDoctorAccess(HttpServletRequest request, String doctorKeycloakId) {
+        String currentUserId = tokenService.extractUserId(request);
+        String role = extractUserRole(request);
+
+        if (!"ADMIN".equals(role) && !currentUserId.equals(doctorKeycloakId)) {
+            throw new AccessDeniedException("Access denied to this doctor's data");
+        }
+    }
+
+    private void checkPatientAccess(HttpServletRequest request, String patientKeycloakId) {
+        String currentUserId = tokenService.extractUserId(request);
+        String role = extractUserRole(request);
+
+        if (!"ADMIN".equals(role) && !currentUserId.equals(patientKeycloakId)) {
+            throw new AccessDeniedException("Access denied to this patient's data");
+        }
+    }
+
+    private void checkAppointmentOwnership(HttpServletRequest request, Appointment appointment) {
+        String currentUserId = tokenService.extractUserId(request);
+        String role = extractUserRole(request);
+
+        boolean isOwner = currentUserId.equals(appointment.getPatientKeycloakId()) ||
+                currentUserId.equals(appointment.getDoctorKeycloakId()) ||
+                currentUserId.equals(appointment.getNurseKeycloakId());
+
+        if (!"ADMIN".equals(role) && !isOwner) {
+            throw new AccessDeniedException("You can only access your own appointments");
+        }
+    }
 
     @Override
-    public AvailableSlotResponse getAvailableSlots(String doctorKeycloakId, LocalDate date, String requestingPatientId) {
+    public AvailableSlotResponse getAvailableSlots(String doctorKeycloakId, LocalDate date, String requestingPatientId, HttpServletRequest request) {
         log.debug("Fetching available slots for doctor: {} on date: {}", doctorKeycloakId, date);
 
-        // Get all booked periods for this doctor/date
-        List<Status> bookedStatuses = Arrays.asList(
-                Status.PENDING,
-                Status.PAID,
-                Status.SCHEDULED
-        );
 
-        List<Period> bookedPeriods = appointmentRepository.findBookedPeriods(
-                doctorKeycloakId, date, bookedStatuses
-        );
+        checkDoctorAccess(request, doctorKeycloakId);
+
+        // Get all booked periods for this doctor/date
+        List<Status> bookedStatuses = Arrays.asList(Status.PENDING, Status.PAID, Status.SCHEDULED);
+        List<Period> bookedPeriods = appointmentRepository.findBookedPeriods(doctorKeycloakId, date, bookedStatuses);
 
         // Get unavailable periods from DayUnavailability
         List<Period> unavailablePeriods = getUnavailablePeriodsForDate(doctorKeycloakId, date);
@@ -124,9 +175,14 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
-    public ReservationResponse reserveSlot(ReserveSlotRequest request) {
+    public ReservationResponse reserveSlot(ReserveSlotRequest request, HttpServletRequest httpRequest) {
         log.debug("Attempting to reserve slot: doctor={}, date={}, period={}",
                 request.getDoctorKeycloakId(), request.getAppointmentDate(), request.getPeriod());
+
+        String currentUserId = tokenService.extractUserId(httpRequest);
+        if (!currentUserId.equals(request.getPatientKeycloakId())) {
+            throw new AccessDeniedException("You can only reserve appointments for yourself");
+        }
 
         // Validation: date must be in the future
         if (request.getAppointmentDate().isBefore(LocalDate.now())) {
@@ -200,13 +256,17 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
-    public ReservationResponse rescheduleAppointment(RescheduleAppointmentRequest request) {
+    public ReservationResponse rescheduleAppointment(RescheduleAppointmentRequest request, HttpServletRequest httpRequest) {
         log.debug("Rescheduling appointment: oldId={}", request.getOldAppointmentId());
 
         // Find old appointment
         Appointment oldAppointment = appointmentRepository.findById(request.getOldAppointmentId())
                 .orElseThrow(() -> new NotFoundException("Old appointment not found"));
 
+        checkAppointmentOwnership(httpRequest, oldAppointment);
+        if(!extractUserRole(httpRequest).equals("PATIENT")){
+            throw new AccessDeniedException("patient can only reschedule appointments");
+        }
         // Validate old appointment is PAID
         if (oldAppointment.getStatus() != Status.PAID) {
             throw new BadRequestException("Can only reschedule PAID appointments");
@@ -222,14 +282,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Old appointment cancelled: {}", oldAppointment.getId());
 
         // Reserve new slot
-        return reserveSlot(request.getReserveSlotRequest());
+        ReserveSlotRequest reserveRequest = request.getReserveSlotRequest();
+        reserveRequest.setPatientKeycloakId(tokenService.extractUserId(httpRequest));
+        return reserveSlot(reserveRequest, httpRequest);
     }
 
     @Override
     @Transactional
-    public void createDayUnavailability(DayUnavailabilityRequest request) {
+    public void createDayUnavailability(DayUnavailabilityRequest request, HttpServletRequest httpRequest) {
         log.debug("Creating day unavailability for doctor: {} on date: {}",
                 request.getDoctorKeycloakId(), request.getDate());
+
+        checkDoctorAccess(httpRequest, request.getDoctorKeycloakId());
 
         // Create unavailability record
         DayUnavailability unavailability = new DayUnavailability();
@@ -248,7 +312,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .collect(Collectors.toList());
 
         for (Appointment appointment : appointmentsToCancel) {
-            cancelAppointment(appointment, "Doctor unavailable");
+            cancelAppointment(appointment, "Doctor unavailable", httpRequest);
         }
 
         log.info("Day unavailability created and {} appointments cancelled",
@@ -257,9 +321,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
-    public void createVacationUnavailability(VacationUnavailabilityRequest request) {
+    public void createVacationUnavailability(VacationUnavailabilityRequest request, HttpServletRequest httpRequest) {
         log.debug("Creating vacation unavailability for doctor: {}, days: {}",
                 request.getDoctorKeycloakId(), request.getDaysOfWeek());
+
+        checkDoctorAccess(httpRequest, request.getDoctorKeycloakId());
 
         // Create unavailability record
         VacationUnavailability unavailability = new VacationUnavailability();
@@ -282,24 +348,35 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .collect(Collectors.toList());
 
         for (Appointment appointment : appointmentsToCancel) {
-            cancelAppointment(appointment, "Doctor on vacation");
+            cancelAppointment(appointment, "Doctor on vacation", httpRequest);
         }
 
         log.info("Vacation unavailability created and {} appointments cancelled",
                 appointmentsToCancel.size());
     }
 
+    /**
+     you can pay with this command on stripe cli after command login
+     stripe payment_intents confirm PaymentIntentId --payment-method=pm_card_visa --return-url="http://localhost:3000"
+     **/
+
     @Override
     @Transactional
-    public void confirmPayment(ConfirmPaymentRequest request) {
+    public void confirmPayment(ConfirmPaymentRequest request, HttpServletRequest httpRequest) {
         log.debug("Confirming payment for reservation: {}", request.getReservationToken());
 
         Appointment appointment = appointmentRepository.findByReservationToken(request.getReservationToken())
                 .orElseThrow(() -> new NotFoundException("Reservation not found"));
 
+        checkAppointmentOwnership(httpRequest, appointment);
+        if(!extractUserRole(httpRequest).equals("PATIENT")){
+            throw new AccessDeniedException("patient can only confirm payment");
+        }
+
         // Validate reservation status and expiry
         if (appointment.getStatus() != Status.PENDING) {
-            throw new BadRequestException("Reservation is not in PENDING status");
+            throw new BadRequestException("Reservation is not in PENDING status and in"
+                    +appointment.getStatus().name());
         }
 
         if (appointment.getExpiresAt().isBefore(Instant.now())) {
@@ -326,9 +403,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
-    public AppointmentResponse adminApproval(AdminApprovalRequest request) {
+    public AppointmentResponse adminApproval(AdminApprovalRequest request, HttpServletRequest httpRequest) {
         log.debug("Processing admin approval: token={}, decision={}",
                 request.getReservationToken(), request.getDecision());
+
+        checkAdminAccess(httpRequest);
 
         Appointment appointment = appointmentRepository.findByReservationToken(request.getReservationToken())
                 .orElseThrow(() -> new NotFoundException("Reservation not found"));
@@ -343,25 +422,32 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointment.getAppointmentDate(), appointment.getPeriod());
 
         if (request.getDecision() == AdminApprovalRequest.ApprovalDecision.APPROVE) {
-            return approveAppointment(appointment, request);
+            return approveAppointment(appointment, request, httpRequest);
         } else {
-            return rejectAppointment(appointment, request);
+            return rejectAppointment(appointment, request, httpRequest);
         }
     }
 
     @Override
-    public AppointmentResponse getAppointmentById(Long id) {
+    public AppointmentResponse getAppointmentById(Long id, HttpServletRequest httpRequest) {
         log.debug("Fetching appointment: {}", id);
 
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Appointment not found with id: " + id));
 
+        checkAppointmentOwnership(httpRequest, appointment);
+
         return toResponse(appointment);
     }
 
     @Override
-    public List<AppointmentResponse> getMyAppointments(String keycloakId, String role) {
+    public List<AppointmentResponse> getMyAppointments(String keycloakId, String role, HttpServletRequest httpRequest) {
         log.debug("Fetching appointments for user: {}, role: {}", keycloakId, role);
+
+        String currentUserId = tokenService.extractUserId(httpRequest);
+        if (!currentUserId.equals(keycloakId)) {
+            throw new AccessDeniedException("You can only view your own appointments");
+        }
 
         List<Appointment> appointments;
 
@@ -384,38 +470,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .collect(Collectors.toList());
     }
 
-    // ============= Private Helper Methods =============
 
-    private void checkDoctorAvailability(String doctorKeycloakId, LocalDate date, Period period) {
-        // Check day-specific unavailability
-        boolean dayUnavailable = dayUnavailabilityRepository
-                .existsByDoctorAndDateAndPeriod(doctorKeycloakId, date, period);
-
-        if (dayUnavailable) {
-            throw new ConflictException("Doctor is unavailable for this time slot");
-        }
-
-        // Check vacation unavailability
-        String dayOfWeek = date.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-        boolean onVacation = vacationUnavailabilityRepository
-                .existsByDoctorAndDayOfWeek(doctorKeycloakId, dayOfWeek);
-
-        if (onVacation) {
-            throw new ConflictException("Doctor is on vacation on " + dayOfWeek);
-        }
-    }
-
-    private List<Period> getUnavailablePeriodsForDate(String doctorKeycloakId, LocalDate date) {
-        List<DayUnavailability> dayUnavailabilities = dayUnavailabilityRepository
-                .findByDoctorKeycloakIdAndAppointmentDate(doctorKeycloakId, date);
-
-        return dayUnavailabilities.stream()
-                .flatMap(u -> u.getPeriods().stream())
-                .distinct()
-                .collect(Collectors.toList());
-    }
-
-    private void cancelAppointment(Appointment appointment, String reason) {
+    private void cancelAppointment(Appointment appointment, String reason, HttpServletRequest httpRequest) {
         log.debug("Cancelling appointment: {}, reason: {}", appointment.getId(), reason);
 
         try {
@@ -439,7 +495,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    private AppointmentResponse approveAppointment(Appointment appointment, AdminApprovalRequest request) {
+    private AppointmentResponse approveAppointment(Appointment appointment, AdminApprovalRequest request, HttpServletRequest httpRequest) {
         log.debug("Approving appointment: {}", appointment.getId());
 
         // Validate room availability
@@ -490,7 +546,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    private AppointmentResponse rejectAppointment(Appointment appointment, AdminApprovalRequest request) {
+    private AppointmentResponse rejectAppointment(Appointment appointment, AdminApprovalRequest request, HttpServletRequest httpRequest) {
         log.debug("Rejecting appointment: {}", appointment.getId());
 
         try {
@@ -516,6 +572,35 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
+    private void checkDoctorAvailability(String doctorKeycloakId, LocalDate date, Period period) {
+        // Check day-specific unavailability
+        boolean dayUnavailable = dayUnavailabilityRepository
+                .existsByDoctorAndDateAndPeriod(doctorKeycloakId, date, period);
+
+        if (dayUnavailable) {
+            throw new ConflictException("Doctor is unavailable for this time slot");
+        }
+
+        // Check vacation unavailability
+        String dayOfWeek = date.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+        boolean onVacation = vacationUnavailabilityRepository
+                .existsByDoctorAndDayOfWeek(doctorKeycloakId, dayOfWeek);
+
+        if (onVacation) {
+            throw new ConflictException("Doctor is on vacation on " + dayOfWeek);
+        }
+    }
+
+    private List<Period> getUnavailablePeriodsForDate(String doctorKeycloakId, LocalDate date) {
+        List<DayUnavailability> dayUnavailabilities = dayUnavailabilityRepository
+                .findByDoctorKeycloakIdAndAppointmentDate(doctorKeycloakId, date);
+
+        return dayUnavailabilities.stream()
+                .flatMap(u -> u.getPeriods().stream())
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
     private String buildLockKey(String doctorId, LocalDate date, Period period) {
         return String.format("appointment:lock:%s:%s:%s", doctorId, date, period);
     }
@@ -528,6 +613,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .patientKeycloakId(appointment.getPatientKeycloakId())
                 .departmentId(appointment.getDepartmentId())
                 .roomId(appointment.getRoomId())
+                .reason(appointment.getReason())
                 .status(appointment.getStatus())
                 .appointmentDate(appointment.getAppointmentDate())
                 .period(appointment.getPeriod())

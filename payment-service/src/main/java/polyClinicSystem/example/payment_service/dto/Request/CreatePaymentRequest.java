@@ -25,8 +25,6 @@ public class CreatePaymentRequest {
 
     private Long appointmentId;
 
-    private String paymentMethodId;
-
     private String description;
 }
 

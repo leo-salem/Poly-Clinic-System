@@ -7,13 +7,19 @@ spring:
     database: POSTGRESQL
     show-sql: true
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   rabbitmq:
     port: 5672
     host: localhost
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
+
+  sql:
+    init:
+      mode: always
+      platform: postgresql
+
 server:
   port: 8081
 
@@ -48,3 +54,18 @@ logging:
     org.springframework.cloud.gateway: DEBUG
     org.springframework.web.servlet.DispatcherServlet: DEBUG
 
+app:
+  admin:
+    keycloak-id: ${APP_ADMIN_KEYCLOAK_ID}
+    first-name: ${APP_ADMIN_FIRST_NAME}
+    last-name: ${APP_ADMIN_LAST_NAME}
+    username: ${APP_ADMIN_USERNAME}
+    email: ${APP_ADMIN_EMAIL}
+    password: ${APP_ADMIN_PASSWORD}
+    phone: ${APP_ADMIN_PHONE}
+    age: ${APP_ADMIN_AGE}
+    gender: ${APP_ADMIN_GENDER}
+    address: ${APP_ADMIN_ADDRESS}
+    blood-type: ${APP_ADMIN_BLOOD_TYPE}
+    role: ${APP_ADMIN_ROLE}
+    create-default: ${APP_ADMIN_CREATE_DEFAULT:true}

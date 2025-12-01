@@ -1,4 +1,7 @@
 package polyClinicSystem.example.payment_service.controller;
+
+
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,39 +23,59 @@ public class PaymentController {
     private final TokenService tokenService;
 
     @PostMapping("/create-intent")
-    public ResponseEntity<PaymentResponse> createPaymentIntent(@Valid @RequestBody CreatePaymentRequest request) {
-        PaymentResponse response = paymentService.createPaymentIntent(request);
+    public ResponseEntity<PaymentResponse> createPaymentIntent(
+            @Valid @RequestBody CreatePaymentRequest request,
+            HttpServletRequest httpRequest) {
+
+        PaymentResponse response = paymentService.createPaymentIntent(request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/confirm/{paymentIntentId}")
-    public ResponseEntity<PaymentResponse> confirmPayment(@PathVariable String paymentIntentId) {
-        PaymentResponse response = paymentService.confirmPayment(paymentIntentId);
+    public ResponseEntity<PaymentResponse> confirmPayment(
+            @PathVariable String paymentIntentId,
+            HttpServletRequest httpRequest) {
+
+        PaymentResponse response = paymentService.confirmPayment(paymentIntentId, httpRequest);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/capture/{paymentIntentId}")
-    public ResponseEntity<String> capturePayment(@PathVariable String paymentIntentId) {
-        paymentService.capturePayment(paymentIntentId);
+    public ResponseEntity<String> capturePayment(
+            @PathVariable String paymentIntentId,
+            HttpServletRequest httpRequest) {
+
+        paymentService.capturePayment(paymentIntentId, httpRequest);
         return ResponseEntity.ok("Payment captured successfully.");
     }
 
     @PostMapping("/cancel-or-refund/{paymentIntentId}")
-    public ResponseEntity<String> cancelOrRefund(@PathVariable String paymentIntentId) {
-        paymentService.cancelOrRefundPayment(paymentIntentId);
+    public ResponseEntity<String> cancelOrRefund(
+            @PathVariable String paymentIntentId,
+            HttpServletRequest httpRequest) {
+
+        paymentService.cancelOrRefundPayment(paymentIntentId, httpRequest);
         return ResponseEntity.ok("Payment cancelled or refunded successfully.");
     }
 
-
-    @GetMapping("/my-payments/{patientKeycloakId}")
-    public ResponseEntity<List<PaymentResponse>> getMyPayments(@PathVariable String patientKeycloakId ) {
-        List<PaymentResponse> payments = paymentService.getMyPayments(patientKeycloakId);
+    @GetMapping("/my-payments")
+    public ResponseEntity<List<PaymentResponse>> getMyPayments(HttpServletRequest httpRequest) {
+        List<PaymentResponse> payments = paymentService.getMyPayments(httpRequest);
         return ResponseEntity.ok(payments);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PaymentResponse> getPayment(@PathVariable Long id) {
-        PaymentResponse response = paymentService.getPaymentById(id);
+    public ResponseEntity<PaymentResponse> getPayment(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+
+        PaymentResponse response = paymentService.getPaymentById(id, httpRequest);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/admin/all")
+    public ResponseEntity<List<PaymentResponse>> getAllPayments(HttpServletRequest httpRequest) {
+        List<PaymentResponse> payments = paymentService.getAllPayments(httpRequest);
+        return ResponseEntity.ok(payments);
     }
 }

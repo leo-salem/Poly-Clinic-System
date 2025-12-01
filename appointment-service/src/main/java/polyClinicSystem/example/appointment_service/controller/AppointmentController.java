@@ -7,7 +7,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import polyClinicSystem.example.appointment_service.client.UserClient;
 import polyClinicSystem.example.appointment_service.dto.request.*;
 import polyClinicSystem.example.appointment_service.dto.response.AppointmentResponse;
 import polyClinicSystem.example.appointment_service.dto.response.AvailableSlotResponse;
@@ -25,7 +24,6 @@ public class AppointmentController {
 
     private final AppointmentService appointmentService;
     private final TokenService tokenService;
-    private final UserClient userClient;
 
     @GetMapping("/available-slots")
     public ResponseEntity<AvailableSlotResponse> getAvailableSlots(
@@ -34,8 +32,7 @@ public class AppointmentController {
             HttpServletRequest request) {
 
         String patientId = tokenService.extractUserId(request);
-        AvailableSlotResponse response = appointmentService.getAvailableSlots(doctorKeycloakId, date, patientId);
-
+        AvailableSlotResponse response = appointmentService.getAvailableSlots(doctorKeycloakId, date, patientId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -47,7 +44,7 @@ public class AppointmentController {
         String patientId = tokenService.extractUserId(httpRequest);
         request.setPatientKeycloakId(patientId);
 
-        ReservationResponse response = appointmentService.reserveSlot(request);
+        ReservationResponse response = appointmentService.reserveSlot(request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -56,49 +53,61 @@ public class AppointmentController {
             @Valid @RequestBody RescheduleAppointmentRequest request,
             HttpServletRequest httpRequest) {
 
-        String patientId = tokenService.extractUserId(httpRequest);
-        request.getReserveSlotRequest().setPatientKeycloakId(patientId);
-
-        ReservationResponse response = appointmentService.rescheduleAppointment(request);
+        ReservationResponse response = appointmentService.rescheduleAppointment(request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/confirm-payment")
-    public ResponseEntity<Void> confirmPayment(@Valid @RequestBody ConfirmPaymentRequest request) {
-        appointmentService.confirmPayment(request);
+    public ResponseEntity<Void> confirmPayment(
+            @Valid @RequestBody ConfirmPaymentRequest request,
+            HttpServletRequest httpRequest) {
+
+        appointmentService.confirmPayment(request, httpRequest);
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
     @PostMapping("/admin/approve")
-    public ResponseEntity<AppointmentResponse> adminApproval(@Valid @RequestBody AdminApprovalRequest request) {
-        AppointmentResponse response = appointmentService.adminApproval(request);
+    public ResponseEntity<AppointmentResponse> adminApproval(
+            @Valid @RequestBody AdminApprovalRequest request,
+            HttpServletRequest httpRequest) {
+
+        AppointmentResponse response = appointmentService.adminApproval(request, httpRequest);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/admin/day-unavailability")
-    public ResponseEntity<Void> createDayUnavailability(@Valid @RequestBody DayUnavailabilityRequest request) {
-        appointmentService.createDayUnavailability(request);
+    public ResponseEntity<Void> createDayUnavailability(
+            @Valid @RequestBody DayUnavailabilityRequest request,
+            HttpServletRequest httpRequest) {
+
+        appointmentService.createDayUnavailability(request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/admin/vacation-unavailability")
-    public ResponseEntity<Void> createVacationUnavailability(@Valid @RequestBody VacationUnavailabilityRequest request) {
-        appointmentService.createVacationUnavailability(request);
+    public ResponseEntity<Void> createVacationUnavailability(
+            @Valid @RequestBody VacationUnavailabilityRequest request,
+            HttpServletRequest httpRequest) {
+
+        appointmentService.createVacationUnavailability(request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AppointmentResponse> getAppointment(@PathVariable Long id) {
-        AppointmentResponse response = appointmentService.getAppointmentById(id);
+    public ResponseEntity<AppointmentResponse> getAppointment(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+
+        AppointmentResponse response = appointmentService.getAppointmentById(id, httpRequest);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/my-appointments")
     public ResponseEntity<List<AppointmentResponse>> getMyAppointments(HttpServletRequest request) {
         String keycloakId = tokenService.extractUserId(request);
-        String role = userClient.getUserByKeycloakId(keycloakId).getRole().toString();
+        String role = tokenService.extractUserRole(request);
 
-        List<AppointmentResponse> appointments = appointmentService.getMyAppointments(keycloakId, role);
+        List<AppointmentResponse> appointments = appointmentService.getMyAppointments(keycloakId, role, request);
         return ResponseEntity.ok(appointments);
     }
 }

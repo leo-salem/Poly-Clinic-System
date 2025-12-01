@@ -6,7 +6,6 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import polyClinicSystem.example.payment_service.model.enums.Method;
 import polyClinicSystem.example.payment_service.model.enums.Status;
 
 import java.math.BigDecimal;
@@ -54,8 +53,6 @@ public class Payment {
     @Column(name = "stripe_customer_id")
     private String stripeCustomerId;
 
-    @Column(name = "payment_method")
-    private Method method;
 
     @Column(length = 500)
     private String description;

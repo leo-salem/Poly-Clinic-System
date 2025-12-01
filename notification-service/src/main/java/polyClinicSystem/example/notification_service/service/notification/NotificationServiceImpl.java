@@ -36,7 +36,7 @@ public class NotificationServiceImpl implements NotificationService {
             UserResponse user = userClient.getUserByKeycloakId(patientKeycloakId);
 
             String subject = "Payment Confirmed - Appointment Pending Approval";
-            String message = buildPaymentConfirmedMessage(user.getName(), appointmentDate, period);
+            String message = buildPaymentConfirmedMessage(user.getFirstName() + " "+ user.getLastName(), appointmentDate, period);
 
             Notification notification = createNotification(
                     patientKeycloakId,
@@ -70,7 +70,9 @@ public class NotificationServiceImpl implements NotificationService {
 
             String patientSubject = "Appointment Confirmed";
             String patientMessage = buildAppointmentScheduledMessageForPatient(
-                    patient.getName(), doctor.getName(), appointmentDate, period, roomId
+                    patient.getFirstName() + " "+ patient.getLastName()
+                    , doctor.getFirstName() + " "+ doctor.getLastName()
+                    , appointmentDate, period, roomId
             );
 
             Notification patientNotification = createNotification(
@@ -89,7 +91,9 @@ public class NotificationServiceImpl implements NotificationService {
             // Notify doctor
             String doctorSubject = "New Appointment Scheduled";
             String doctorMessage = buildAppointmentScheduledMessageForDoctor(
-                    doctor.getName(), patient.getName(), appointmentDate, period, roomId
+                    doctor.getFirstName() + " "+ doctor.getLastName()
+                    ,patient.getFirstName() + " "+ patient.getLastName()
+                    , appointmentDate, period, roomId
             );
 
             Notification doctorNotification = createNotification(
@@ -110,7 +114,10 @@ public class NotificationServiceImpl implements NotificationService {
                 UserResponse nurse = userClient.getUserByKeycloakId(nurseKeycloakId);
                 String nurseSubject = "New Appointment Assignment";
                 String nurseMessage = buildAppointmentScheduledMessageForNurse(
-                        nurse.getName(), patient.getName(), doctor.getName(), appointmentDate, period, roomId
+                        nurse.getFirstName() + " "+ nurse.getLastName()
+                        , patient.getFirstName() + " "+ patient.getLastName()
+                        , doctor.getFirstName() + " "+ doctor.getLastName()
+                        , appointmentDate, period, roomId
                 );
 
                 Notification nurseNotification = createNotification(
@@ -141,7 +148,7 @@ public class NotificationServiceImpl implements NotificationService {
             UserResponse user = userClient.getUserByKeycloakId(patientKeycloakId);
 
             String subject = "Appointment Rejected";
-            String message = buildAppointmentRejectedMessage(user.getName(), reason);
+            String message = buildAppointmentRejectedMessage(user.getFirstName() + " "+ user.getLastName(), reason);
 
             Notification notification = createNotification(
                     patientKeycloakId,
@@ -173,7 +180,8 @@ public class NotificationServiceImpl implements NotificationService {
             UserResponse patient = userClient.getUserByKeycloakId(patientKeycloakId);
 
             String patientSubject = "Appointment Cancelled";
-            String patientMessage = buildAppointmentCancelledMessage(patient.getName(), appointmentDate, period, reason);
+            String patientMessage = buildAppointmentCancelledMessage(patient.getFirstName() + " "+ patient.getLastName()
+                    , appointmentDate, period, reason);
 
             Notification patientNotification = createNotification(
                     patientKeycloakId,
@@ -193,7 +201,9 @@ public class NotificationServiceImpl implements NotificationService {
 
             String doctorSubject = "Appointment Cancelled";
             String doctorMessage = buildAppointmentCancelledMessageForDoctor(
-                    doctor.getName(), patient.getName(), appointmentDate, period, reason
+                    doctor.getFirstName() + " "+ doctor.getLastName()
+                    ,patient.getFirstName() + " "+ patient.getLastName()
+                    , appointmentDate, period, reason
             );
 
             Notification doctorNotification = createNotification(
@@ -225,7 +235,9 @@ public class NotificationServiceImpl implements NotificationService {
             UserResponse doctor = userClient.getUserByKeycloakId(doctorKeycloakId);
 
             String subject = "Appointment Completed - Thank You";
-            String message = buildAppointmentCompletedMessage(patient.getName(), doctor.getName(), appointmentDate, period);
+            String message = buildAppointmentCompletedMessage(patient.getFirstName() + " "+ patient.getLastName()
+                    ,doctor.getFirstName() + " "+ doctor.getLastName()
+                    , appointmentDate, period);
 
             Notification notification = createNotification(
                     patientKeycloakId,
@@ -419,3 +431,4 @@ public class NotificationServiceImpl implements NotificationService {
         );
     }
 }
+

@@ -18,6 +18,7 @@ import polyClinicSystem.example.payment_service.client.UserClient;
 import polyClinicSystem.example.payment_service.dto.Request.CreatePaymentRequest;
 import polyClinicSystem.example.payment_service.dto.Response.PaymentResponse;
 import polyClinicSystem.example.payment_service.dto.Response.UserResponse;
+import polyClinicSystem.example.payment_service.exception.customExceptions.AccessDeniedException;
 import polyClinicSystem.example.payment_service.exception.customExceptions.NotFoundException;
 import polyClinicSystem.example.payment_service.exception.customExceptions.PaymentException;
 import polyClinicSystem.example.payment_service.model.Payment;
@@ -26,6 +27,7 @@ import polyClinicSystem.example.payment_service.repository.PaymentRepository;
 import polyClinicSystem.example.payment_service.service.token.TokenService;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,10 +60,45 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    private String extractUserRole(HttpServletRequest request) {
+        String token = tokenService.extractToken(request);
+        if (token == null) {
+            throw new AccessDeniedException("Token not found");
+        }
+        UserResponse currentUser = getCurrentUser(request);
+        return currentUser.getRole().name();
+
+    }
+
+    private void checkPatientAccess(HttpServletRequest request, String patientKeycloakId) {
+        String currentUserId = tokenService.extractUserId(request);
+        String role = extractUserRole(request);
+
+        if (!"ADMIN".equals(role) && !currentUserId.equals(patientKeycloakId)) {
+            throw new AccessDeniedException("Access denied to this payment");
+        }
+    }
+
+    private void checkPaymentOwnership(HttpServletRequest request, Payment payment) {
+        String currentUserId = tokenService.extractUserId(request);
+        String role = extractUserRole(request);
+
+        if (!"ADMIN".equals(role) && !currentUserId.equals(payment.getPatientKeycloakId())) {
+            throw new AccessDeniedException("You can only access your own payments");
+        }
+    }
+
     @Override
     @Transactional
-    public PaymentResponse createPaymentIntent(CreatePaymentRequest request) {
+    public PaymentResponse createPaymentIntent(CreatePaymentRequest request, HttpServletRequest httpRequest) {
         log.debug("Creating payment intent: amount={}, currency={}", request.getAmount(), request.getCurrency());
+
+        String currentUserId = tokenService.extractUserId(httpRequest);
+        String role = extractUserRole(httpRequest);
+
+        if (!"ADMIN".equals(role) && !currentUserId.equals(request.getPatientKeycloakId())) {
+            throw new AccessDeniedException("You can only create payments for yourself");
+        }
 
         try {
             // Convert amount to cents (Stripe requires smallest currency unit)
@@ -97,6 +134,8 @@ public class PaymentServiceImpl implements PaymentService {
                     .paymentIntentId(paymentIntent.getId())
                     .amount(request.getAmount())
                     .currency(request.getCurrency())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .status(Status.PENDING)
                     .description(request.getDescription())
                     .build();
@@ -106,15 +145,15 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("Payment intent created: id={}, paymentIntentId={}", saved.getId(), paymentIntent.getId());
 
             return PaymentResponse.builder()
-                    .id(payment.getId())
-                    .appointmentId(payment.getAppointmentId())
-                    .patientKeycloakId(payment.getPatientKeycloakId())
-                    .paymentIntentId(payment.getPaymentIntentId())
+                    .id(saved.getId())
+                    .appointmentId(saved.getAppointmentId())
+                    .patientKeycloakId(saved.getPatientKeycloakId())
+                    .paymentIntentId(saved.getPaymentIntentId())
                     .clientSecret(paymentIntent.getClientSecret())
-                    .amount(payment.getAmount())
-                    .currency(payment.getCurrency())
-                    .status(payment.getStatus())
-                    .createdAt(payment.getCreatedAt())
+                    .amount(saved.getAmount())
+                    .currency(saved.getCurrency())
+                    .status(saved.getStatus())
+                    .createdAt(saved.getCreatedAt())
                     .build();
 
         } catch (StripeException e) {
@@ -125,11 +164,13 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentResponse confirmPayment(String paymentIntentId) {
+    public PaymentResponse confirmPayment(String paymentIntentId, HttpServletRequest httpRequest) {
         log.debug("Confirming payment: {}", paymentIntentId);
 
         Payment payment = paymentRepository.findByPaymentIntentId(paymentIntentId)
                 .orElseThrow(() -> new PaymentException("Payment not found"));
+
+        checkPaymentOwnership(httpRequest, payment);
 
         payment.setStatus(Status.AUTHORIZED);
         Payment saved = paymentRepository.save(payment);
@@ -140,18 +181,36 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public List<PaymentResponse> getMyPayments(String patientKeycloakId ) {
-        return paymentRepository.findByPatientKeycloakIdOrderByCreatedAtDesc(patientKeycloakId)
+    public List<PaymentResponse> getMyPayments(HttpServletRequest httpRequest) {
+        String currentUserId = tokenService.extractUserId(httpRequest);
+        return paymentRepository.findByPatientKeycloakIdOrderByCreatedAtDesc(currentUserId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public PaymentResponse getPaymentById(Long id) {
+    public PaymentResponse getPaymentById(Long id, HttpServletRequest httpRequest) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new PaymentException("Payment not found"));
+
+        checkPaymentOwnership(httpRequest, payment);
+
         return toResponse(payment);
+    }
+
+    @Override
+    public List<PaymentResponse> getAllPayments(HttpServletRequest httpRequest) {
+
+        String role =extractUserRole(httpRequest);
+        if (!role.equals( "ADMIN")) {
+            throw new AccessDeniedException("you are not admin to access all payments");
+        }
+
+        return paymentRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -169,8 +228,14 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public void capturePayment(String paymentIntentId) {
+    public void capturePayment(String paymentIntentId, HttpServletRequest httpRequest) {
         log.debug("Capturing payment: paymentIntentId={}", paymentIntentId);
+
+        String role =extractUserRole(httpRequest);
+        if (!role.equals( "ADMIN")) {
+            throw new AccessDeniedException("you are not admin to capture ");
+        }
+
 
         try {
             PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
@@ -200,8 +265,14 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public void cancelOrRefundPayment(String paymentIntentId) {
+    public void cancelOrRefundPayment(String paymentIntentId, HttpServletRequest httpRequest) {
         log.debug("Cancelling/refunding payment: paymentIntentId={}", paymentIntentId);
+
+        String role =extractUserRole(httpRequest);
+        if (!role.equals( "ADMIN")) {
+            throw new AccessDeniedException("you are not admin to cancel or refund");
+        }
+
 
         try {
             PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);

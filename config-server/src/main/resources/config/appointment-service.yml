@@ -16,17 +16,9 @@ spring:
     password: ${RABBITMQ_PASSWORD}
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD}
-      database: ${REDIS_DATABASE:0}
-      timeout: 2000ms
-      jedis:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 2
-          max-wait: -1ms
+      host: localhost
+      port: 6379
+      database: 0
   kafka:
     bootstrap-servers: localhost:29092
     consumer:
@@ -56,6 +48,10 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
 
+payment:
+  service:
+    url: ${PAYMENT_SERVICE_URL}
+
 logging:
   level:
     root: INFO
@@ -70,9 +66,6 @@ appointment:
   reservation:
     ttl-minutes: 10  # How long a PENDING reservation is held
 
-stripe:
-  api:
-    key: ${STRIPE_SECRET_KEY:sk_test_your_stripe_key}
 
 
 

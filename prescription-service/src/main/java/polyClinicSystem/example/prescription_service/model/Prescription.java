@@ -24,6 +24,8 @@ public class Prescription {
     private String diagnose;
     private String medicine;
 
+    private Long appointmentId;
+
     private String doctorKeycloakId;  // from current user
     private String patientKeycloakId; // from DTO
 

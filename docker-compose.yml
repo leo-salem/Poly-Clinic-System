@@ -71,7 +71,6 @@ services:
     networks:
       - backend
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass embarkx
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0

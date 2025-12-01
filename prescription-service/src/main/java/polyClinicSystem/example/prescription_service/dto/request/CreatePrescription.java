@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class CreatePrescription {
     private Long recordId;
     private String patientId;
-
+    private Long appointmentId;
     private String diagnose;
     private String medicine;
 }

@@ -19,6 +19,8 @@ public class PrescriptionResponse {
     private String doctorId;
     private String patientId;
 
+    private Long appointmentId;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
