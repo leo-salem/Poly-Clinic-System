@@ -104,7 +104,7 @@ A production-grade **distributed microservices platform** for medical clinic man
 
 ---
 
-This project includes visual and technical documentation stored in the docs/ directory which is 
+This project includes visual and technical documentation which is 
 - API endpoints (Swagger)
 - Project & Service ERDs
 - Stripe payment flows
@@ -117,6 +117,8 @@ and these some examples of them
 ![WhatsApp Image 2025-12-02 at 08 14 20_44d453c4](https://github.com/user-attachments/assets/7fbac95b-effc-4a04-ad7b-59bb5b76ba29)
 
 ![WhatsApp Image 2025-12-02 at 07 40 55_e19e9461](https://github.com/user-attachments/assets/633e5843-4657-4c41-8e3c-7f3af3422906)
+
+![WhatsApp Image 2025-12-02 at 07 43 55_463d0b0a](https://github.com/user-attachments/assets/77d2848e-dae6-48a1-894f-660401f2bf42)
 
 Start entire system:
 ```bash
