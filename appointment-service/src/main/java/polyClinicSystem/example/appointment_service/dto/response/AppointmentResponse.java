@@ -16,13 +16,12 @@ public class AppointmentResponse {
     private String doctorKeycloakId;
     private String nurseKeycloakId;
     private String patientKeycloakId;
-    private Long departmentId;
     private Long roomId;
     private Status status;
     private LocalDate appointmentDate;
     private Period period;
     private String reservationToken;
-    private String paymentId;
+    private Long paymentId;
     private Instant expiresAt;
     private Instant createdAt;
     private Instant updatedAt;

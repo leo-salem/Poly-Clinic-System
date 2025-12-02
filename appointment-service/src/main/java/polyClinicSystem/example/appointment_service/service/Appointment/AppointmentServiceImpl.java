@@ -109,9 +109,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     public AvailableSlotResponse getAvailableSlots(String doctorKeycloakId, LocalDate date, String requestingPatientId, HttpServletRequest request) {
         log.debug("Fetching available slots for doctor: {} on date: {}", doctorKeycloakId, date);
 
-
-        checkDoctorAccess(request, doctorKeycloakId);
-
         // Get all booked periods for this doctor/date
         List<Status> bookedStatuses = Arrays.asList(Status.PENDING, Status.PAID, Status.SCHEDULED);
         List<Period> bookedPeriods = appointmentRepository.findBookedPeriods(doctorKeycloakId, date, bookedStatuses);
@@ -284,7 +281,15 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Reserve new slot
         ReserveSlotRequest reserveRequest = request.getReserveSlotRequest();
         reserveRequest.setPatientKeycloakId(tokenService.extractUserId(httpRequest));
-        return reserveSlot(reserveRequest, httpRequest);
+        ReservationResponse reservationResponse=  reserveSlot(reserveRequest, httpRequest);
+        ConfirmPaymentRequest confirmPaymentRequest=ConfirmPaymentRequest.builder()
+                .paymentIntentId(request.getPaymentIntentId())
+                .paymentId(request.getPaymentId())
+                .reservationToken(reservationResponse.getReservationToken())
+                .build();
+        confirmPayment(confirmPaymentRequest, httpRequest);
+
+        return reservationResponse;
     }
 
     @Override
@@ -393,6 +398,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Update appointment with payment info
         appointment.setPaymentIntentId(request.getPaymentIntentId());
         appointment.setStatus(Status.PAID);
+        appointment.setPaymentId(request.getPaymentId());
         appointmentRepository.save(appointment);
 
         // Publish event to outbox
@@ -611,7 +617,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .doctorKeycloakId(appointment.getDoctorKeycloakId())
                 .nurseKeycloakId(appointment.getNurseKeycloakId())
                 .patientKeycloakId(appointment.getPatientKeycloakId())
-                .departmentId(appointment.getDepartmentId())
                 .roomId(appointment.getRoomId())
                 .reason(appointment.getReason())
                 .status(appointment.getStatus())

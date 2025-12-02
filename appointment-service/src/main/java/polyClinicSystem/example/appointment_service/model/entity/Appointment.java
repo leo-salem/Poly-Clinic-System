@@ -50,9 +50,6 @@ public class Appointment {
     @Column(name = "patient_keycloak_id", nullable = false)
     private String patientKeycloakId;
 
-    @Column(name = "department_id")
-    private Long departmentId;
-
     @Column(name = "room_id")
     private Long roomId;
 
@@ -63,7 +60,7 @@ public class Appointment {
     private String reservationToken;
 
     @Column(name = "payment_id")
-    private String paymentId;
+    private Long paymentId;
 
     @Column(name = "payment_intent_id")
     private String paymentIntentId;
